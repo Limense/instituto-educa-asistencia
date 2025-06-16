@@ -11,8 +11,9 @@ const rateLimit = require('express-rate-limit');
 
 // Importar rutas
 const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
-const attendanceRoutes = require('./routes/attendance');
+const userRoutes = require('./routes/users-simple'); // Versión simplificada temporalmente
+const testUserRoutes = require('./routes/test-users');
+const attendanceRoutes = require('./routes/attendance-simple'); // Versión simplificada
 const departmentRoutes = require('./routes/departments');
 const reportRoutes = require('./routes/reports');
 const settingsRoutes = require('./routes/settings');
@@ -39,15 +40,27 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Rate limiting
+// Rate limiting muy permisivo para desarrollo - prácticamente deshabilitado
 const limiter = rateLimit({
-    windowMs: (process.env.RATE_LIMIT_WINDOW || 15) * 60 * 1000, // 15 minutos
-    max: process.env.RATE_LIMIT_MAX || 100, // máximo 100 requests por ventana
+    windowMs: 60 * 1000, // 1 minuto
+    max: 10000, // 10000 requests por minuto (muy permisivo)
     message: {
         error: 'Demasiadas peticiones desde esta IP, intenta de nuevo más tarde.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => {
+        // Omitir rate limiting para desarrollo y rutas críticas
+        return process.env.NODE_ENV === 'development' || 
+               req.url.includes('/health') || 
+               req.url.includes('/attendance/clock');
     }
 });
-app.use('/api/', limiter);
+
+// Solo aplicar rate limiting en producción
+if (process.env.NODE_ENV === 'production') {
+    app.use('/api/', limiter);
+}
 
 // Logging
 if (process.env.NODE_ENV !== 'test') {
@@ -81,6 +94,7 @@ app.use('/api/auth', authRoutes);
 
 // Rutas protegidas
 app.use('/api/users', authenticate, userRoutes);
+app.use('/api/test-users', authenticate, testUserRoutes);
 app.use('/api/attendance', authenticate, attendanceRoutes);
 app.use('/api/departments', authenticate, departmentRoutes);
 app.use('/api/reports', authenticate, reportRoutes);

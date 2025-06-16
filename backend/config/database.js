@@ -1,4 +1,5 @@
 // Configuración de Base de Datos MySQL - Instituto Educa
+require('dotenv').config();
 const mysql = require('mysql2/promise');
 
 const dbConfig = {
@@ -10,10 +11,7 @@ const dbConfig = {
     charset: 'utf8mb4',
     timezone: '+00:00',
     connectionLimit: 10,
-    queueLimit: 0,
-    // Configuraciones de reconexión y timeout válidas
-    idleTimeout: 60000,
-    acquireTimeout: 60000
+    queueLimit: 0
 };
 
 // Pool de conexiones

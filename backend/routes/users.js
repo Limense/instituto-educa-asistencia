@@ -56,48 +56,57 @@ router.get('/', requireSupervisor, asyncHandler(async (req, res) => {
         search 
     } = req.query;
     
-    let whereConditions = ['u.is_active = 1'];
+    let whereConditions = ['u.active = 1'];
     let queryParams = [];
     
     // Filtros
     if (role) {
         whereConditions.push('u.role = ?');
         queryParams.push(role);
-    }
-    
-    if (departmentId) {
-        whereConditions.push('u.department_id = ?');
+    }    if (departmentId) {
+        whereConditions.push('JSON_UNQUOTE(JSON_EXTRACT(u.employment, "$.departmentId")) = ?');
         queryParams.push(departmentId);
     }
     
     if (search) {
         whereConditions.push('(u.username LIKE ? OR JSON_UNQUOTE(JSON_EXTRACT(u.profile, "$.firstName")) LIKE ? OR JSON_UNQUOTE(JSON_EXTRACT(u.profile, "$.lastName")) LIKE ?)');
         const searchPattern = `%${search}%`;
-        queryParams.push(searchPattern, searchPattern, searchPattern);
-    }
+        queryParams.push(searchPattern, searchPattern, searchPattern);    }
     
     // Si es supervisor, solo puede ver usuarios de sus departamentos
     if (req.user.role === 'supervisor') {
-        whereConditions.push('u.department_id IN (SELECT id FROM departments WHERE manager_id = ?)');
-        queryParams.push(req.user.id);
+        // Obtener departamentos que maneja este supervisor
+        const managedDepts = await query(
+            'SELECT id FROM departments WHERE manager_id = ?',
+            [req.user.id]
+        );
+        if (managedDepts.length > 0) {
+            const deptIds = managedDepts.map(d => d.id);
+            const placeholders = deptIds.map(() => '?').join(',');
+            whereConditions.push(`JSON_UNQUOTE(JSON_EXTRACT(u.employment, "$.departmentId")) IN (${placeholders})`);
+            queryParams.push(...deptIds);
+        } else {
+            // Si no maneja ningún departamento, no puede ver usuarios
+            whereConditions.push('1 = 0');
+        }
     }
     
     const whereClause = whereConditions.join(' AND ');
     
     // Consulta principal con información completa
-    const users = await query(`
-        SELECT 
+    const users = await query(`        SELECT 
             u.id,
             u.username,
             u.role,
             u.profile,
-            u.is_active,
+            u.employment,
+            u.active,
             u.created_at,
             u.last_login,
-            u.department_id,
-            d.name as department_name
+            d.name as department_name,
+            d.id as department_id_resolved
         FROM users u
-        LEFT JOIN departments d ON u.department_id = d.id
+        LEFT JOIN departments d ON d.id = JSON_UNQUOTE(JSON_EXTRACT(u.employment, "$.departmentId"))
         WHERE ${whereClause}
         ORDER BY u.created_at DESC
         LIMIT ? OFFSET ?
@@ -114,17 +123,19 @@ router.get('/', requireSupervisor, asyncHandler(async (req, res) => {
     const totalPages = Math.ceil(total / parseInt(limit));
     
     res.json({
-        success: true,
-        data: users.map(user => ({
+        success: true,        data: users.map(user => ({
             id: user.id,
             username: user.username,
             role: user.role,
             profile: user.profile ? JSON.parse(user.profile) : null,
-            is_active: user.is_active,
+            employment: user.employment ? JSON.parse(user.employment) : null,
+            active: user.active,
             created_at: user.created_at,
             last_login: user.last_login,
-            department_id: user.department_id,
-            department_name: user.department_name
+            department: {
+                id: user.department_id_resolved,
+                name: user.department_name
+            }
         })),
         pagination: {
             page: parseInt(page),

@@ -183,10 +183,9 @@ router.get('/:reportType', requireSupervisor, asyncHandler(async (req, res) => {
             COUNT(CASE WHEN a.status = 'late' THEN 1 END) as lateDays,
             COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absentDays,
             SUM(a.total_hours) as totalHours,
-            AVG(CASE WHEN a.status IN ('present', 'late') THEN 1 ELSE 0 END) * 100 as averageAttendance
-        FROM users u
+            AVG(CASE WHEN a.status IN ('present', 'late') THEN 1 ELSE 0 END) * 100 as averageAttendance        FROM users u
         LEFT JOIN attendance a ON u.id = a.user_id AND ${dateFilter}
-        WHERE u.is_active = true ${whereClause}
+        WHERE u.active = true ${whereClause}
     `, queryParams);
     
     // Obtener detalles por empleado
@@ -201,11 +200,10 @@ router.get('/:reportType', requireSupervisor, asyncHandler(async (req, res) => {
             COUNT(CASE WHEN a.status = 'present' THEN 1 END) as presentDays,
             COUNT(CASE WHEN a.status = 'late' THEN 1 END) as lateDays,
             COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absentDays,
-            SUM(a.total_hours) as totalHours
-        FROM users u
-        LEFT JOIN departments d ON u.department_id = d.id
+            SUM(a.total_hours) as totalHours        FROM users u
+        LEFT JOIN departments d ON d.id = JSON_UNQUOTE(JSON_EXTRACT(u.employment, "$.departmentId"))
         LEFT JOIN attendance a ON u.id = a.user_id AND ${dateFilter}
-        WHERE u.is_active = true ${whereClause}
+        WHERE u.active = true ${whereClause}
         GROUP BY u.id, u.username, fullName, d.name
         ORDER BY d.name, fullName
     `, queryParams);

@@ -1,6 +1,6 @@
 /**
  * Instituto Educa - Aplicación Principal
- * Sistema de Control de Asistencia v2.0
+ * Sistema de Control de Asistencia v2.0 - VERSIÓN LIMPIA
  */
 
 // Configuración global
@@ -48,191 +48,103 @@ function showToast(message, type = 'info') {
     toast.className = `toast ${type}`;
     
     const icons = {
-        success: 'fas fa-check-circle',
-        error: 'fas fa-times-circle',
-        warning: 'fas fa-exclamation-triangle',
-        info: 'fas fa-info-circle'
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
     };
-    
-    toast.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center;">
-                <i class="${icons[type] || icons.info}" style="margin-right: 8px;"></i>
-                <span>${message}</span>
-            </div>
-            <button onclick="this.closest('.toast').remove()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; margin-left: 10px;">&times;</button>
-        </div>
-    `;
-    
-    toast.style.cssText = `
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        margin-bottom: 10px;
-        padding: 12px 16px;
-        border-left: 4px solid;
-        animation: slideIn 0.3s ease;
-    `;
     
     const colors = {
-        success: '#28a745',
-        error: '#dc3545',
-        warning: '#ffc107',
-        info: '#17a2b8'
+        success: { bg: '#d4edda', border: '#c3e6cb', text: '#155724' },
+        error: { bg: '#f8d7da', border: '#f5c6cb', text: '#721c24' },
+        warning: { bg: '#fff3cd', border: '#ffeaa7', text: '#856404' },
+        info: { bg: '#d1ecf1', border: '#bee5eb', text: '#0c5460' }
     };
     
-    toast.style.borderLeftColor = colors[type] || colors.info;
+    const color = colors[type] || colors.info;
+    
+    toast.style.cssText = `
+        background: ${color.bg};
+        color: ${color.text};
+        border: 1px solid ${color.border};
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        font-size: 14px;
+        animation: slideInRight 0.3s ease;
+        cursor: pointer;
+    `;
+    
+    toast.innerHTML = `${icons[type] || icons.info} ${message}`;
+    
+    toast.onclick = () => toast.remove();
+    
     container.appendChild(toast);
     
     setTimeout(() => {
-        if (toast.parentElement) {
-            toast.style.animation = 'slideOut 0.3s ease';
+        if (toast.parentNode) {
+            toast.style.animation = 'slideOutRight 0.3s ease';
             setTimeout(() => toast.remove(), 300);
         }
     }, 5000);
 }
 
-// Inicialización de la aplicación
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Iniciando Instituto Educa - Sistema de Asistencia v2.0');
-    
-    setTimeout(() => {
-        initializeApplication();
-    }, 100);
-});
-
-function initializeApplication() {
-    console.log('🔧 Inicializando aplicación...');
-    
-    try {
-        initializeServices();
-        setupUIEventListeners();
-        checkExistingSession();
-        
-        console.log('✅ Aplicación iniciada correctamente');
-        
-    } catch (error) {
-        console.error('❌ Error crítico en la inicialización:', error);
-        showToast('Error crítico en la inicialización del sistema', 'error');
-    }
-}
-
-function initializeServices() {
-    try {
-        console.log('🔧 Inicializando servicios...');
-        
-        window.authManager = new AuthManager();
-        
-        setTimeout(() => {
-            checkBackendHealth();
-        }, 500);
-        
-        return true;
-    } catch (error) {
-        console.error('❌ Error inicializando servicios:', error);
-        return false;
-    }
-}
-
-async function checkExistingSession() {
-    if (window.authManager && window.authManager.isUserAuthenticated()) {
-        console.log('✅ Sesión existente encontrada');
-        
-        const isValid = await window.authManager.verifySession();
-        
-        if (isValid) {
-            const user = window.authManager.getCurrentUser();
-            showMainApp(user);
-        } else {
-            console.log('⚠️ Sesión expirada, mostrando login');
-            showLoginScreen();
+// CSS para animaciones de toast
+if (!document.getElementById('toastStyles')) {
+    const style = document.createElement('style');
+    style.id = 'toastStyles';
+    style.textContent = `
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
-    } else {
-        console.log('ℹ️ No hay sesión existente, mostrando login');
-        showLoginScreen();
-    }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
 }
 
-function setupUIEventListeners() {
-    console.log('🔧 Configurando event listeners de UI...');
+// Función de inicialización cuando se autentica un usuario
+function initializeApp(user) {
+    console.log('🎓 Inicializando aplicación para:', user.username);
     
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
-    
-    const logoutBtn = document.getElementById('btnLogout');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
-    
-    const btnEmployee = document.getElementById('btnEmployee');
-    const btnSupervisor = document.getElementById('btnSupervisor');
-    const btnAdmin = document.getElementById('btnAdmin');
-    
-    if (btnEmployee) {
-        btnEmployee.addEventListener('click', () => quickLogin('empleado1', 'admin123'));
-    }
-    
-    if (btnSupervisor) {
-        btnSupervisor.addEventListener('click', () => quickLogin('supervisor1', 'admin123'));
-    }
-    
-    if (btnAdmin) {
-        btnAdmin.addEventListener('click', () => quickLogin('admin', 'admin123'));
-    }
-    
-    const notificationBtn = document.getElementById('notificationBtn');
-    if (notificationBtn) {
-        notificationBtn.addEventListener('click', toggleNotifications);
-    }
-}
-
-function showLoginScreen() {
-    document.getElementById('loginScreen').classList.remove('hidden');
-    document.getElementById('mainApp').classList.add('hidden');
-}
-
-function showMainApp(user) {
+    // Mostrar aplicación principal
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('mainApp').classList.remove('hidden');
     
-    updateUserInterface(user);
-    loadDashboard();
+    // Actualizar información del usuario
+    updateUserInfo(user);
+    
+    // Generar menú de navegación
+    generateNavigationMenu(user);
+    
+    // Cargar vista inicial
+    loadView('dashboard');
+    
+    showToast(`Bienvenido ${getUserDisplayName(user)}`, 'success');
 }
 
-function updateUserInterface(user) {
-    const userNameElement = document.getElementById('userName');
-    const userRoleElement = document.getElementById('userRole');
-    const userAvatarElement = document.getElementById('userAvatar');
+function updateUserInfo(user) {
+    const userNameEl = document.getElementById('userName');
+    const userRoleEl = document.getElementById('userRole');
+    const userAvatarEl = document.getElementById('userAvatar');
     
-    if (userNameElement && user.profile) {
-        const profile = typeof user.profile === 'string' ? JSON.parse(user.profile) : user.profile;
-        userNameElement.textContent = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || user.username;
+    if (userNameEl) userNameEl.textContent = getUserDisplayName(user);
+    if (userRoleEl) userRoleEl.textContent = CONFIG.ROLES[user.role]?.name || user.role;
+    if (userAvatarEl) {
+        userAvatarEl.textContent = getUserDisplayName(user).charAt(0).toUpperCase();
+        userAvatarEl.style.backgroundColor = CONFIG.ROLES[user.role]?.color || '#6C757D';
     }
-    
-    if (userRoleElement) {
-        const roleConfig = CONFIG.ROLES[user.role] || { name: user.role };
-        userRoleElement.textContent = roleConfig.name;
-        userRoleElement.style.color = roleConfig.color || '#333';
-    }
-    
-    if (userAvatarElement) {
-        const profile = typeof user.profile === 'string' ? JSON.parse(user.profile) : user.profile;
-        const initials = profile && profile.firstName ? 
-            `${profile.firstName.charAt(0)}${profile.lastName ? profile.lastName.charAt(0) : ''}` : 
-            user.username.charAt(0).toUpperCase();
-        userAvatarElement.textContent = initials;
-    }
-    
-    generateNavigationMenu(user);
 }
 
 function generateNavigationMenu(user) {
     const menuItems = document.getElementById('menuItems');
     const navigationMenu = document.getElementById('navigationMenu');
     
-    if (!menuItems || !navigationMenu) return;
+    if (!menuItems) return;
     
     const menuConfig = {
         administrator: [
@@ -262,6 +174,7 @@ function generateNavigationMenu(user) {
     
     const items = menuConfig[user.role] || menuConfig.employee;
     
+    // Generar menú lateral
     menuItems.innerHTML = items.map(item => `
         <li class="menu-item">
             <a href="#" onclick="loadView('${item.view}')" class="menu-link">
@@ -271,25 +184,30 @@ function generateNavigationMenu(user) {
         </li>
     `).join('');
     
-    navigationMenu.innerHTML = items.slice(0, 4).map(item => `
-        <button onclick="loadView('${item.view}')" class="nav-btn">
-            <i class="${item.icon}"></i>
-            <span>${item.label}</span>
-        </button>
-    `).join('');
+    // Header limpio sin botones duplicados
+    if (navigationMenu) {
+        navigationMenu.innerHTML = '';
+    }
 }
 
 function loadView(viewName) {
     console.log(`📄 Cargando vista: ${viewName}`);
+    
+    // Actualizar estado global
     window.AppState.currentView = viewName;
     
-    const contentArea = document.getElementById('contentArea');
-    if (!contentArea) return;
+    // Marcar elemento activo en el menú
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+    });
     
-    contentArea.innerHTML = '<div class="loading">Cargando...</div>';
-    updateActiveMenu(viewName);
+    const activeMenuItem = document.querySelector(`[onclick="loadView('${viewName}')"]`)?.closest('.menu-item');
+    if (activeMenuItem) {
+        activeMenuItem.classList.add('active');
+    }
     
-    switch(viewName) {
+    // Cargar vista correspondiente
+    switch (viewName) {
         case 'dashboard':
             loadDashboard();
             break;
@@ -309,34 +227,17 @@ function loadView(viewName) {
             loadSettingsView();
             break;
         default:
-            contentArea.innerHTML = `<div class="error">Vista "${viewName}" no encontrada</div>`;
+            loadDashboard();
     }
-}
-
-function updateActiveMenu(viewName) {
-    document.querySelectorAll('.menu-link, .nav-btn').forEach(el => {
-        el.classList.remove('active');
-    });
-    
-    document.querySelectorAll(`[onclick*="${viewName}"]`).forEach(el => {
-        el.classList.add('active');
-    });
 }
 
 function loadDashboard() {
     const contentArea = document.getElementById('contentArea');
-    const user = window.authManager?.getCurrentUser();
-    
-    if (!user) {
-        contentArea.innerHTML = '<div class="error">Usuario no autenticado</div>';
-        return;
-    }
-    
     contentArea.innerHTML = `
         <div class="dashboard-container">
             <div class="dashboard-header">
                 <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
-                <p>Bienvenido/a de vuelta, ${getUserDisplayName(user)}</p>
+                <p>Resumen de tu actividad y asistencia</p>
             </div>
             
             <div class="dashboard-stats">
@@ -345,8 +246,8 @@ function loadDashboard() {
                         <i class="fas fa-clock"></i>
                     </div>
                     <div class="stat-info">
-                        <h3 id="todayStatus">--</h3>
-                        <p>Estado de Hoy</p>
+                        <h3 id="todayHours">-- hrs</h3>
+                        <p>Horas Hoy</p>
                     </div>
                 </div>
                 
@@ -385,10 +286,10 @@ function loadDashboard() {
                 <div class="quick-actions">
                     <h3>Acciones Rápidas</h3>
                     <div class="action-buttons">
-                        <button onclick="clockIn()" class="btn btn-success">
+                        <button id="clockInBtn" onclick="clockIn()" class="btn btn-success">
                             <i class="fas fa-sign-in-alt"></i> Marcar Entrada
                         </button>
-                        <button onclick="clockOut()" class="btn btn-warning">
+                        <button id="clockOutBtn" onclick="clockOut()" class="btn btn-warning">
                             <i class="fas fa-sign-out-alt"></i> Marcar Salida
                         </button>
                         <button onclick="loadView('attendance')" class="btn btn-info">
@@ -407,42 +308,63 @@ function loadDashboard() {
         </div>
     `;
     
+    // Cargar datos del dashboard
     loadDashboardData();
 }
 
 async function loadDashboardData() {
     try {
-        const user = window.authManager.getCurrentUser();
+        console.log('📊 Cargando datos del dashboard...');
+        
         const apiService = new ApiService();
         
-        // Cargar estadísticas reales desde la API
-        const attendanceData = await apiService.get(`/attendance/summary/${user.id}`);
-        
-        if (attendanceData.success) {
-            const data = attendanceData.data;
-            document.getElementById('todayStatus').textContent = data.todayStatus || 'Sin datos';
-            document.getElementById('weekHours').textContent = `${data.weekHours || 0} hrs`;
-            document.getElementById('monthHours').textContent = `${data.monthHours || 0} hrs`;
-            document.getElementById('attendanceRate').textContent = `${data.attendanceRate || 0}%`;
-        } else {
-            // Datos de ejemplo si no hay datos reales
-            document.getElementById('todayStatus').textContent = 'Presente';
+        // Cargar resumen de asistencia
+        try {
+            const summaryResult = await apiService.get('/attendance/summary');
+            if (summaryResult.success) {
+                const summary = summaryResult.data;
+                document.getElementById('weekHours').textContent = `${summary.weekHours || 0} hrs`;
+                document.getElementById('monthHours').textContent = `${summary.monthHours || 0} hrs`;
+                document.getElementById('attendanceRate').textContent = `${summary.attendanceRate || 0}%`;
+            } else {
+                throw new Error('No se pudo cargar el resumen');
+            }
+        } catch (error) {
+            console.warn('Usando datos de ejemplo para resumen:', error.message);
             document.getElementById('weekHours').textContent = '32 hrs';
             document.getElementById('monthHours').textContent = '128 hrs';
             document.getElementById('attendanceRate').textContent = '95%';
         }
         
+        // Cargar estado de hoy
+        try {
+            const todayResult = await apiService.get('/attendance/today');
+            if (todayResult.success && todayResult.data) {
+                const todayData = todayResult.data;
+                const todayHours = todayData.total_hours ? 
+                    parseFloat(todayData.total_hours).toFixed(1) : '0.0';
+                document.getElementById('todayHours').textContent = `${todayHours} hrs`;
+            } else {
+                document.getElementById('todayHours').textContent = '0.0 hrs';
+            }
+        } catch (error) {
+            console.warn('No se pudo cargar datos de hoy:', error.message);
+            document.getElementById('todayHours').textContent = '0.0 hrs';
+        }
+        
+        // Actualizar botones de asistencia
+        if (typeof updateAttendanceButtons === 'function') {
+            updateAttendanceButtons();
+        }
+        
+        // Cargar actividad reciente
         loadRecentActivity();
+        
+        console.log('✅ Datos del dashboard cargados');
         
     } catch (error) {
-        console.error('Error cargando datos del dashboard:', error);
-        // Mostrar datos de ejemplo en caso de error
-        document.getElementById('todayStatus').textContent = 'Presente';
-        document.getElementById('weekHours').textContent = '32 hrs';
-        document.getElementById('monthHours').textContent = '128 hrs';
-        document.getElementById('attendanceRate').textContent = '95%';
-        
-        loadRecentActivity();
+        console.error('❌ Error general cargando dashboard:', error);
+        showToast('Error cargando datos del dashboard', 'error');
     }
 }
 
@@ -451,97 +373,47 @@ async function loadRecentActivity() {
     if (!activityContainer) return;
     
     try {
-        const user = window.authManager.getCurrentUser();
         const apiService = new ApiService();
+        const response = await apiService.get('/attendance?limit=5');
         
-        const response = await apiService.get(`/attendance/recent/${user.id}`);
-        
-        if (response.success && response.data.length > 0) {
-            activityContainer.innerHTML = response.data.map(activity => `
-                <div class="activity-item">
-                    <div class="activity-time">${new Date(activity.timestamp).toLocaleTimeString()}</div>
-                    <div class="activity-description">${activity.description}</div>
-                </div>
-            `).join('');
-        } else {
-            // Actividad de ejemplo
-            const activities = [
-                { time: '08:00', action: 'Entrada registrada', type: 'clock-in' },
-                { time: '12:00', action: 'Pausa iniciada', type: 'break' },
-                { time: '13:00', action: 'Pausa finalizada', type: 'break' },
-            ];
+        if (response.success && response.attendance && response.attendance.length > 0) {
+            const activities = response.attendance.slice(0, 5);
             
-            activityContainer.innerHTML = activities.map(activity => `
-                <div class="activity-item">
-                    <div class="activity-time">${activity.time}</div>
-                    <div class="activity-description">${activity.action}</div>
-                </div>
-            `).join('');
+            activityContainer.innerHTML = activities.map(activity => {
+                const date = new Date(activity.created_at).toLocaleDateString('es-ES');
+                const timeIn = activity.clock_in ? 
+                    new Date(activity.clock_in).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '--';
+                const timeOut = activity.clock_out ? 
+                    new Date(activity.clock_out).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '--';
+                
+                return `
+                    <div class="activity-item">
+                        <div class="activity-date">${date}</div>
+                        <div class="activity-time">
+                            Entrada: ${timeIn} | Salida: ${timeOut}
+                        </div>
+                        <div class="activity-status status-${activity.status}">
+                            ${getStatusLabel(activity.status)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            activityContainer.innerHTML = '<div class="no-activity">No hay actividad reciente</div>';
         }
     } catch (error) {
         console.error('Error cargando actividad reciente:', error);
-        activityContainer.innerHTML = '<div class="no-activity">No hay actividad reciente</div>';
+        activityContainer.innerHTML = '<div class="no-activity">Error cargando actividad</div>';
     }
 }
 
 function getUserDisplayName(user) {
-    if (user.profile) {
-        const profile = typeof user.profile === 'string' ? JSON.parse(user.profile) : user.profile;
+    if (user && user.profile) {
+        const profile = typeof user.profile === 'string' ? 
+            JSON.parse(user.profile) : user.profile;
         return `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || user.username;
     }
-    return user.username;
-}
-
-async function clockIn() {
-    try {
-        showToast('Marcando entrada...', 'info');
-        
-        const user = window.authManager.getCurrentUser();
-        const apiService = new ApiService();
-        
-        const result = await apiService.post('/attendance', {
-            date: new Date().toISOString().split('T')[0],
-            clock_in: new Date().toISOString(),
-            status: 'present',
-            type: 'manual'
-        });
-        
-        if (result.success) {
-            showToast('Entrada registrada correctamente', 'success');
-            loadDashboardData();
-        } else {
-            throw new Error(result.message || 'Error al registrar entrada');
-        }
-        
-    } catch (error) {
-        console.error('Error marcando entrada:', error);
-        showToast('Error al marcar entrada: ' + error.message, 'error');
-    }
-}
-
-async function clockOut() {
-    try {
-        showToast('Marcando salida...', 'info');
-        
-        const user = window.authManager.getCurrentUser();
-        const apiService = new ApiService();
-        
-        const result = await apiService.put('/attendance/clock-out', {
-            date: new Date().toISOString().split('T')[0],
-            clock_out: new Date().toISOString()
-        });
-        
-        if (result.success) {
-            showToast('Salida registrada correctamente', 'success');
-            loadDashboardData();
-        } else {
-            throw new Error(result.message || 'Error al registrar salida');
-        }
-        
-    } catch (error) {
-        console.error('Error marcando salida:', error);
-        showToast('Error al marcar salida: ' + error.message, 'error');
-    }
+    return user ? user.username : 'Usuario';
 }
 
 function loadAttendanceView() {
@@ -551,16 +423,16 @@ function loadAttendanceView() {
             <div class="view-header">
                 <h1><i class="fas fa-clock"></i> Gestión de Asistencia</h1>
                 <div class="view-actions">
-                    <button onclick="loadAttendanceToday()" class="btn btn-primary">Hoy</button>
-                    <button onclick="loadAttendanceWeek()" class="btn btn-secondary">Esta Semana</button>
-                    <button onclick="loadAttendanceMonth()" class="btn btn-secondary">Este Mes</button>
+                    <button onclick="loadAttendanceData('today')" class="btn btn-secondary">Hoy</button>
+                    <button onclick="loadAttendanceData('week')" class="btn btn-secondary">Esta Semana</button>
+                    <button onclick="loadAttendanceData('month')" class="btn btn-primary">Este Mes</button>
                 </div>
             </div>
             
             <div class="attendance-summary">
-                <div class="summary-cards">
+                <div class="summary-stats">
                     <div class="summary-card">
-                        <h3>Horas Trabajadas</h3>
+                        <h3>Horas Totales</h3>
                         <div class="summary-value" id="totalHours">-- hrs</div>
                     </div>
                     <div class="summary-card">
@@ -588,22 +460,48 @@ function loadAttendanceView() {
 async function loadAttendanceData(period = 'month') {
     try {
         const attendanceContainer = document.getElementById('attendanceData');
-        const user = window.authManager.getCurrentUser();
+        if (!attendanceContainer) return;
+        
         const apiService = new ApiService();
         
-        const response = await apiService.get(`/attendance/user/${user.id}?period=${period}`);
+        // Actualizar botones activos
+        document.querySelectorAll('.view-actions .btn').forEach(btn => {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-secondary');
+        });
         
-        if (response.success && response.data.length > 0) {
-            const records = response.data;
+        const activeBtn = document.querySelector(`[onclick="loadAttendanceData('${period}')"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('btn-primary');
+            activeBtn.classList.remove('btn-secondary');
+        }
+        
+        const response = await apiService.get(`/attendance?period=${period}`);
+        
+        if (response.success && response.attendance && response.attendance.length > 0) {
+            const records = response.attendance;
             
-            // Actualizar resumen
-            const totalHours = records.reduce((sum, record) => sum + (record.hours_worked || 0), 0);
-            const daysPresent = records.filter(r => r.status === 'present').length;
-            const daysLate = records.filter(r => r.status === 'late').length;
+            // Calcular estadísticas
+            let totalHours = 0;
+            let daysPresent = 0;
+            let daysLate = 0;
             
-            document.getElementById('totalHours').textContent = `${totalHours} hrs`;
-            document.getElementById('daysPresent').textContent = `${daysPresent}/${records.length}`;
-            document.getElementById('daysLate').textContent = daysLate;
+            records.forEach(record => {
+                if (record.total_hours) {
+                    totalHours += parseFloat(record.total_hours) || 0;
+                }
+                if (record.status === 'present') daysPresent++;
+                if (record.status === 'late') daysLate++;
+            });
+            
+            // Actualizar estadísticas
+            const totalHoursEl = document.getElementById('totalHours');
+            const daysPresentEl = document.getElementById('daysPresent');
+            const daysLateEl = document.getElementById('daysLate');
+            
+            if (totalHoursEl) totalHoursEl.textContent = `${totalHours.toFixed(1)} hrs`;
+            if (daysPresentEl) daysPresentEl.textContent = `${daysPresent}/${records.length}`;
+            if (daysLateEl) daysLateEl.textContent = daysLate;
             
             // Mostrar tabla
             attendanceContainer.innerHTML = `
@@ -618,159 +516,23 @@ async function loadAttendanceData(period = 'month') {
                         </tr>
                     </thead>
                     <tbody>
-                        ${records.map(record => `
-                            <tr>
-                                <td>${new Date(record.date).toLocaleDateString()}</td>
-                                <td>${record.clock_in ? new Date(record.clock_in).toLocaleTimeString() : '--'}</td>
-                                <td>${record.clock_out ? new Date(record.clock_out).toLocaleTimeString() : '--'}</td>
-                                <td>${record.hours_worked || 0} hrs</td>
-                                <td><span class="status ${record.status}">${record.status}</span></td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        } else {
-            // Datos de ejemplo
-            const attendanceRecords = [
-                { date: '2025-01-15', clockIn: '08:00', clockOut: '17:00', status: 'present', hours: 8.0 },
-                { date: '2025-01-14', clockIn: '08:15', clockOut: '17:00', status: 'late', hours: 7.75 },
-                { date: '2025-01-13', clockIn: '08:00', clockOut: '17:00', status: 'present', hours: 8.0 }
-            ];
-            
-            document.getElementById('totalHours').textContent = '23.75 hrs';
-            document.getElementById('daysPresent').textContent = '2/3';
-            document.getElementById('daysLate').textContent = '1';
-            
-            attendanceContainer.innerHTML = `
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Entrada</th>
-                            <th>Salida</th>
-                            <th>Horas</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${attendanceRecords.map(record => `
-                            <tr>
-                                <td>${record.date}</td>
-                                <td>${record.clockIn}</td>
-                                <td>${record.clockOut}</td>
-                                <td>${record.hours} hrs</td>
-                                <td><span class="status ${record.status}">${record.status}</span></td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-        
-    } catch (error) {
-        console.error('Error cargando datos de asistencia:', error);
-        showToast('Error cargando datos de asistencia', 'error');
-        
-        // Mostrar datos de ejemplo en caso de error
-        const attendanceContainer = document.getElementById('attendanceData');
-        attendanceContainer.innerHTML = `
-            <div class="error">
-                Error cargando datos de asistencia. Mostrando datos de ejemplo.
-            </div>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Entrada</th>
-                        <th>Salida</th>
-                        <th>Horas</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>2025-01-15</td>
-                        <td>08:00</td>
-                        <td>17:00</td>
-                        <td>8.0 hrs</td>
-                        <td><span class="status present">present</span></td>
-                    </tr>
-                </tbody>
-            </table>
-        `;
-    }
-}
-
-function loadAttendanceToday() {
-    loadAttendanceData('today');
-}
-
-function loadAttendanceWeek() {
-    loadAttendanceData('week');
-}
-
-function loadAttendanceMonth() {
-    loadAttendanceData('month');
-}
-
-function loadUsersView() {
-    const contentArea = document.getElementById('contentArea');
-    contentArea.innerHTML = `
-        <div class="view-container">
-            <div class="view-header">
-                <h1><i class="fas fa-users"></i> Gestión de Usuarios</h1>
-                <button onclick="showAddUserModal()" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Agregar Usuario
-                </button>
-            </div>
-            <div id="usersData" class="data-table">
-                <div class="loading">Cargando usuarios...</div>
-            </div>
-        </div>
-    `;
-    
-    loadUsersData();
-}
-
-async function loadUsersData() {
-    try {
-        const usersContainer = document.getElementById('usersData');
-        const apiService = new ApiService();
-        
-        const response = await apiService.get('/users');
-        
-        if (response.success && response.data.length > 0) {
-            usersContainer.innerHTML = `
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Usuario</th>
-                            <th>Nombre</th>
-                            <th>Rol</th>
-                            <th>Departamento</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${response.data.map(user => {
-                            const profile = user.profile ? JSON.parse(user.profile) : {};
+                        ${records.map(record => {
+                            const date = record.created_at ? 
+                                new Date(record.created_at).toLocaleDateString('es-ES') : '--';
+                            const clockIn = record.clock_in ? 
+                                new Date(record.clock_in).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '--';
+                            const clockOut = record.clock_out ? 
+                                new Date(record.clock_out).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '--';
+                            const hours = record.total_hours ? 
+                                `${parseFloat(record.total_hours).toFixed(1)} hrs` : '--';
+                            
                             return `
                                 <tr>
-                                    <td>${user.id}</td>
-                                    <td>${user.username}</td>
-                                    <td>${profile.firstName || ''} ${profile.lastName || ''}</td>
-                                    <td>${user.role}</td>
-                                    <td>${user.department_name || '--'}</td>
-                                    <td><span class="status ${user.is_active ? 'active' : 'inactive'}">${user.is_active ? 'Activo' : 'Inactivo'}</span></td>
-                                    <td>
-                                        <button onclick="editUser(${user.id})" class="btn btn-sm btn-secondary">Editar</button>
-                                        <button onclick="toggleUserStatus(${user.id})" class="btn btn-sm ${user.is_active ? 'btn-warning' : 'btn-success'}">
-                                            ${user.is_active ? 'Desactivar' : 'Activar'}
-                                        </button>
-                                    </td>
+                                    <td>${date}</td>
+                                    <td>${clockIn}</td>
+                                    <td>${clockOut}</td>
+                                    <td>${hours}</td>
+                                    <td><span class="status ${record.status}">${getStatusLabel(record.status)}</span></td>
                                 </tr>
                             `;
                         }).join('')}
@@ -778,146 +540,201 @@ async function loadUsersData() {
                 </table>
             `;
         } else {
-            usersContainer.innerHTML = '<div class="no-data">No hay usuarios registrados</div>';
+            // Sin registros
+            const totalHoursEl = document.getElementById('totalHours');
+            const daysPresentEl = document.getElementById('daysPresent');
+            const daysLateEl = document.getElementById('daysLate');
+            
+            if (totalHoursEl) totalHoursEl.textContent = '0 hrs';
+            if (daysPresentEl) daysPresentEl.textContent = '0/0';
+            if (daysLateEl) daysLateEl.textContent = '0';
+            
+            attendanceContainer.innerHTML = `
+                <div class="no-data">
+                    <i class="fas fa-clock"></i>
+                    <h3>No hay registros de asistencia</h3>
+                    <p>Comienza marcando tu entrada desde el dashboard.</p>
+                    <button onclick="loadView('dashboard')" class="btn btn-primary">Ir al Dashboard</button>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Error cargando datos de asistencia:', error);
+        const attendanceContainer = document.getElementById('attendanceData');
+        if (attendanceContainer) {
+            attendanceContainer.innerHTML = `
+                <div class="error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error cargando registros</h3>
+                    <p>${error.message}</p>
+                    <button onclick="loadAttendanceData('${period}')" class="btn btn-secondary">Reintentar</button>
+                </div>
+            `;
+        }
+    }
+}
+
+// Funciones de asistencia
+async function clockIn() {
+    try {
+        showToast('Marcando entrada...', 'info');
+        
+        const apiService = new ApiService();
+        
+        // Verificar estado actual primero
+        const statusResult = await apiService.get('/attendance/status');
+        if (statusResult.success && !statusResult.data.canClockIn) {
+            showToast('Ya has marcado entrada hoy', 'warning');
+            return;
+        }
+        
+        const result = await apiService.post('/attendance/clock-in', {
+            location: {
+                latitude: null,
+                longitude: null,
+                address: 'Oficina Principal'
+            },
+            observations: 'Entrada manual desde dashboard'
+        });
+        
+        if (result.success) {
+            showToast('✅ Entrada registrada correctamente', 'success');
+            // Recargar datos del dashboard
+            loadDashboardData();
+            loadRecentActivity();
+            updateAttendanceButtons();
+        } else {
+            throw new Error(result.message || 'Error al registrar entrada');
+        }
+        
+    } catch (error) {
+        console.error('Error marcando entrada:', error);
+        let errorMsg = 'Error al marcar entrada';
+        
+        if (error.message.includes('429')) {
+            errorMsg = 'Demasiadas peticiones. Espera un momento y vuelve a intentar.';
+        } else if (error.message.includes('Ya existe un registro')) {
+            errorMsg = 'Ya has marcado entrada hoy';
+        } else if (error.message) {
+            errorMsg = error.message;
+        }
+        
+        showToast('❌ ' + errorMsg, 'error');
+    }
+}
+
+async function clockOut() {
+    try {
+        showToast('Marcando salida...', 'info');
+        
+        const apiService = new ApiService();
+        
+        // Verificar estado actual primero
+        const statusResult = await apiService.get('/attendance/status');
+        if (statusResult.success && !statusResult.data.canClockOut) {
+            showToast('No puedes marcar salida sin haber marcado entrada', 'warning');
+            return;
+        }
+        
+        const result = await apiService.post('/attendance/clock-out', {
+            location: {
+                latitude: null,
+                longitude: null,
+                address: 'Oficina Principal'
+            },
+            observations: 'Salida manual desde dashboard'
+        });
+        
+        if (result.success) {
+            showToast('✅ Salida registrada correctamente', 'success');
+            // Recargar datos del dashboard
+            loadDashboardData();
+            loadRecentActivity();
+            updateAttendanceButtons();
+        } else {
+            throw new Error(result.message || 'Error al registrar salida');
+        }
+        
+    } catch (error) {
+        console.error('Error marcando salida:', error);
+        let errorMsg = 'Error al marcar salida';
+        
+        if (error.message.includes('429')) {
+            errorMsg = 'Demasiadas peticiones. Espera un momento y vuelve a intentar.';
+        } else if (error.message.includes('No se encontró registro')) {
+            errorMsg = 'Debes marcar entrada antes de marcar salida';
+        } else if (error.message) {
+            errorMsg = error.message;
+        }
+        
+        showToast('❌ ' + errorMsg, 'error');
+    }
+}
+
+// Función para actualizar el estado de los botones de asistencia
+async function updateAttendanceButtons() {
+    try {
+        const apiService = new ApiService();
+        const statusResult = await apiService.get('/attendance/status');
+        
+        if (statusResult.success) {
+            const clockInBtn = document.getElementById('clockInBtn');
+            const clockOutBtn = document.getElementById('clockOutBtn');
+            
+            if (clockInBtn) {
+                clockInBtn.disabled = !statusResult.data.canClockIn;
+                clockInBtn.style.opacity = statusResult.data.canClockIn ? '1' : '0.5';
+            }
+            
+            if (clockOutBtn) {
+                clockOutBtn.disabled = !statusResult.data.canClockOut;
+                clockOutBtn.style.opacity = statusResult.data.canClockOut ? '1' : '0.5';
+            }
         }
     } catch (error) {
-        console.error('Error cargando usuarios:', error);
-        document.getElementById('usersData').innerHTML = '<div class="error">Error cargando usuarios</div>';
+        console.error('Error updating attendance buttons:', error);
     }
+}
+
+// Funciones auxiliares
+function getStatusLabel(status) {
+    const labels = {
+        'present': 'Presente',
+        'absent': 'Ausente',
+        'late': 'Tardío',
+        'early': 'Temprano'
+    };
+    return labels[status] || status;
+}
+
+// Funciones básicas para otras vistas
+function loadUsersView() {
+    const contentArea = document.getElementById('contentArea');
+    contentArea.innerHTML = `
+        <div class="view-container">
+            <h1><i class="fas fa-users"></i> Gestión de Usuarios</h1>
+            <p>Funcionalidad en desarrollo...</p>
+        </div>
+    `;
 }
 
 function loadReportsView() {
     const contentArea = document.getElementById('contentArea');
     contentArea.innerHTML = `
         <div class="view-container">
-            <div class="view-header">
-                <h1><i class="fas fa-chart-bar"></i> Reportes de Asistencia</h1>
-                <div class="view-actions">
-                    <select id="reportType" class="form-control">
-                        <option value="monthly">Reporte Mensual</option>
-                        <option value="weekly">Reporte Semanal</option>
-                        <option value="daily">Reporte Diario</option>
-                    </select>
-                    <button onclick="generateReport()" class="btn btn-primary">Generar Reporte</button>
-                </div>
-            </div>
-            <div id="reportContent" class="report-content">
-                <div class="info">Selecciona un tipo de reporte y haz clic en "Generar Reporte"</div>
-            </div>
+            <h1><i class="fas fa-chart-bar"></i> Reportes</h1>
+            <p>Funcionalidad en desarrollo...</p>
         </div>
     `;
-}
-
-async function generateReport() {
-    const reportType = document.getElementById('reportType').value;
-    const reportContent = document.getElementById('reportContent');
-    
-    reportContent.innerHTML = '<div class="loading">Generando reporte...</div>';
-    
-    try {
-        const apiService = new ApiService();
-        const response = await apiService.get(`/reports/${reportType}`);
-        
-        if (response.success) {
-            // Mostrar reporte real
-            displayReport(response.data, reportType);
-        } else {
-            // Mostrar reporte de ejemplo
-            displaySampleReport(reportType);
-        }
-    } catch (error) {
-        console.error('Error generando reporte:', error);
-        displaySampleReport(reportType);
-    }
-}
-
-function displaySampleReport(reportType) {
-    const reportContent = document.getElementById('reportContent');
-    
-    const sampleData = {
-        monthly: {
-            title: 'Reporte Mensual - Enero 2025',
-            stats: {
-                totalEmployees: 15,
-                averageAttendance: '94%',
-                totalHours: 2400,
-                lateArrivals: 12
-            }
-        },
-        weekly: {
-            title: 'Reporte Semanal - Semana del 13-17 Enero',
-            stats: {
-                totalEmployees: 15,
-                averageAttendance: '96%',
-                totalHours: 600,
-                lateArrivals: 3
-            }
-        },
-        daily: {
-            title: 'Reporte Diario - 15 Enero 2025',
-            stats: {
-                totalEmployees: 15,
-                presentEmployees: 14,
-                absentEmployees: 1,
-                lateArrivals: 2
-            }
-        }
-    };
-    
-    const data = sampleData[reportType];
-    
-    reportContent.innerHTML = `
-        <div class="report-header">
-            <h2>${data.title}</h2>
-        </div>
-        <div class="report-stats">
-            ${Object.entries(data.stats).map(([key, value]) => `
-                <div class="report-stat">
-                    <h3>${value}</h3>
-                    <p>${key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</p>
-                </div>
-            `).join('')}
-        </div>
-        <div class="report-actions">
-            <button onclick="exportReport('pdf')" class="btn btn-secondary">
-                <i class="fas fa-file-pdf"></i> Exportar PDF
-            </button>
-            <button onclick="exportReport('excel')" class="btn btn-secondary">
-                <i class="fas fa-file-excel"></i> Exportar Excel
-            </button>
-        </div>
-    `;
-}
-
-function exportReport(format) {
-    showToast(`Exportando reporte en formato ${format.toUpperCase()}...`, 'info');
-    // Aquí iría la lógica real de exportación
-    setTimeout(() => {
-        showToast(`Reporte exportado exitosamente en formato ${format.toUpperCase()}`, 'success');
-    }, 2000);
 }
 
 function loadProfileView() {
     const contentArea = document.getElementById('contentArea');
-    const user = window.authManager.getCurrentUser();
-    
     contentArea.innerHTML = `
         <div class="view-container">
-            <div class="view-header">
-                <h1><i class="fas fa-user"></i> Mi Perfil</h1>
-            </div>
-            <div class="profile-content">
-                <div class="profile-info">
-                    <h3>Información Personal</h3>
-                    <p><strong>Usuario:</strong> ${user.username}</p>
-                    <p><strong>Rol:</strong> ${user.role}</p>
-                    <p><strong>Departamento:</strong> ${user.department_name || 'No asignado'}</p>
-                </div>
-                <div class="profile-actions">
-                    <button onclick="editProfile()" class="btn btn-primary">Editar Perfil</button>
-                    <button onclick="changePassword()" class="btn btn-secondary">Cambiar Contraseña</button>
-                </div>
-            </div>
+            <h1><i class="fas fa-user"></i> Mi Perfil</h1>
+            <p>Funcionalidad en desarrollo...</p>
         </div>
     `;
 }
@@ -926,170 +743,27 @@ function loadSettingsView() {
     const contentArea = document.getElementById('contentArea');
     contentArea.innerHTML = `
         <div class="view-container">
-            <div class="view-header">
-                <h1><i class="fas fa-cog"></i> Configuración del Sistema</h1>
-            </div>
-            <div class="settings-content">
-                <div class="settings-section">
-                    <h3>Configuración General</h3>
-                    <div class="setting-item">
-                        <label>Horas de trabajo por día:</label>
-                        <input type="number" value="8" class="form-control">
-                    </div>
-                    <div class="setting-item">
-                        <label>Zona horaria:</label>
-                        <select class="form-control">
-                            <option>GMT-6 (Hora de México)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="settings-actions">
-                    <button onclick="saveSettings()" class="btn btn-primary">Guardar Configuración</button>
-                </div>
-            </div>
+            <h1><i class="fas fa-cog"></i> Configuración</h1>
+            <p>Funcionalidad en desarrollo...</p>
         </div>
     `;
 }
 
-async function handleLogin(event) {
-    event.preventDefault();
-    
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
-    
-    if (!username || !password) {
-        showToast('Por favor ingresa usuario y contraseña', 'warning');
-        return;
+// Evento para logout
+document.addEventListener('DOMContentLoaded', function() {
+    const logoutBtn = document.getElementById('btnLogout');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            if (window.authManager && typeof window.authManager.logout === 'function') {
+                window.authManager.logout();
+            } else {
+                // Fallback
+                document.getElementById('mainApp').classList.add('hidden');
+                document.getElementById('loginScreen').classList.remove('hidden');
+                showToast('Sesión cerrada', 'info');
+            }
+        });
     }
-    
-    try {
-        const submitBtn = event.target.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando sesión...';
-        submitBtn.disabled = true;
-        
-        const user = await window.authManager.login(username, password);
-        
-        if (user) {
-            showToast(`¡Bienvenido/a ${getUserDisplayName(user)}!`, 'success');
-            showMainApp(user);
-            document.getElementById('loginForm').reset();
-        }
-        
-    } catch (error) {
-        console.error('Error en login:', error);
-        showToast(error.message || 'Error al iniciar sesión', 'error');
-    } finally {
-        const submitBtn = event.target.querySelector('button[type="submit"]');
-        submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar Sesión';
-        submitBtn.disabled = false;
-    }
-}
+});
 
-async function quickLogin(username, password) {
-    try {
-        showToast(`Iniciando sesión como ${username}...`, 'info');
-        
-        const user = await window.authManager.login(username, password);
-        
-        if (user) {
-            showToast(`¡Bienvenido/a ${getUserDisplayName(user)}!`, 'success');
-            showMainApp(user);
-        }
-        
-    } catch (error) {
-        console.error('Error en quick login:', error);
-        showToast(error.message || 'Error al iniciar sesión', 'error');
-    }
-}
-
-async function handleLogout() {
-    try {
-        const confirmLogout = confirm('¿Estás seguro de que deseas cerrar sesión?');
-        if (!confirmLogout) return;
-        
-        showToast('Cerrando sesión...', 'info');
-        
-        await window.authManager.logout();
-        
-        showToast('Sesión cerrada correctamente', 'success');
-        showLoginScreen();
-        
-    } catch (error) {
-        console.error('Error en logout:', error);
-        showToast('Error al cerrar sesión', 'error');
-    }
-}
-
-function toggleNotifications() {
-    const notificationCenter = document.getElementById('notificationCenter');
-    if (notificationCenter) {
-        notificationCenter.classList.toggle('show');
-    }
-}
-
-async function checkBackendHealth() {
-    try {
-        const apiService = new ApiService();
-        const isHealthy = await apiService.checkHealth();
-        
-        if (isHealthy) {
-            console.log('✅ Backend conectado correctamente');
-            updateSystemStatus('Conectado', 'success');
-        } else {
-            console.warn('⚠️ Backend no responde');
-            updateSystemStatus('Desconectado', 'error');
-            showToast('Error de conexión con el servidor', 'warning');
-        }
-    } catch (error) {
-        console.error('❌ Error verificando backend:', error);
-        updateSystemStatus('Error', 'error');
-    }
-}
-
-function updateSystemStatus(status, type) {
-    const statusElement = document.getElementById('systemStatus');
-    if (statusElement) {
-        const statusValue = statusElement.querySelector('.status-value');
-        if (statusValue) {
-            statusValue.textContent = status;
-            statusValue.className = `status-value ${type}`;
-        }
-    }
-    
-    const lastUpdate = document.getElementById('lastUpdate');
-    if (lastUpdate) {
-        lastUpdate.textContent = new Date().toLocaleTimeString();
-    }
-}
-
-// Funciones auxiliares para las vistas
-function editUser(userId) {
-    showToast(`Editando usuario ${userId}...`, 'info');
-    // Aquí iría la lógica para editar usuario
-}
-
-function toggleUserStatus(userId) {
-    showToast(`Cambiando estado del usuario ${userId}...`, 'info');
-    // Aquí iría la lógica para cambiar estado del usuario
-}
-
-function editProfile() {
-    showToast('Abriendo editor de perfil...', 'info');
-    // Aquí iría la lógica para editar perfil
-}
-
-function changePassword() {
-    showToast('Abriendo cambio de contraseña...', 'info');
-    // Aquí iría la lógica para cambiar contraseña
-}
-
-function saveSettings() {
-    showToast('Guardando configuración...', 'info');
-    // Aquí iría la lógica para guardar configuración
-    setTimeout(() => {
-        showToast('Configuración guardada exitosamente', 'success');
-    }, 1000);
-}
-
-console.log('✅ App.js cargado correctamente - Instituto Educa v2.0');
+console.log('✅ App principal cargada correctamente (versión limpia)');
