@@ -47,37 +47,85 @@ const updateUserSchema = createUserSchema.fork(['username', 'password'], (schema
 
 // GET /api/users - Obtener lista de usuarios
 router.get('/', requireSupervisor, asyncHandler(async (req, res) => {
-    // Consulta simple sin filtros complejos por ahora
+    const { 
+        page = 1, 
+        limit = 20, 
+        role, 
+        departmentId, 
+        status = 'active',
+        search 
+    } = req.query;
+    
+    let whereConditions = ['u.is_active = 1'];
+    let queryParams = [];
+    
+    // Filtros
+    if (role) {
+        whereConditions.push('u.role = ?');
+        queryParams.push(role);
+    }
+    
+    if (departmentId) {
+        whereConditions.push('u.department_id = ?');
+        queryParams.push(departmentId);
+    }
+    
+    if (search) {
+        whereConditions.push('(u.username LIKE ? OR JSON_UNQUOTE(JSON_EXTRACT(u.profile, "$.firstName")) LIKE ? OR JSON_UNQUOTE(JSON_EXTRACT(u.profile, "$.lastName")) LIKE ?)');
+        const searchPattern = `%${search}%`;
+        queryParams.push(searchPattern, searchPattern, searchPattern);
+    }
+    
+    // Si es supervisor, solo puede ver usuarios de sus departamentos
+    if (req.user.role === 'supervisor') {
+        whereConditions.push('u.department_id IN (SELECT id FROM departments WHERE manager_id = ?)');
+        queryParams.push(req.user.id);
+    }
+    
+    const whereClause = whereConditions.join(' AND ');
+    
+    // Consulta principal con información completa
     const users = await query(`
         SELECT 
-            id,
-            username,
-            role,
-            active,
-            created_at,
-            last_login
-        FROM users
-        WHERE active = 1
-        ORDER BY created_at DESC
-        LIMIT 20
-    `);
+            u.id,
+            u.username,
+            u.role,
+            u.profile,
+            u.is_active,
+            u.created_at,
+            u.last_login,
+            u.department_id,
+            d.name as department_name
+        FROM users u
+        LEFT JOIN departments d ON u.department_id = d.id
+        WHERE ${whereClause}
+        ORDER BY u.created_at DESC
+        LIMIT ? OFFSET ?
+    `, [...queryParams, parseInt(limit), (parseInt(page) - 1) * parseInt(limit)]);
+    
+    // Contar total para paginación
+    const totalResult = await query(`
+        SELECT COUNT(*) as total 
+        FROM users u 
+        WHERE ${whereClause}
+    `, queryParams);
+    
+    const total = totalResult[0].total;
+    const totalPages = Math.ceil(total / parseInt(limit));
     
     res.json({
         success: true,
-        users: users,
-        pagination: {
-            page: 1,
-            limit: 20,
-            total: users.length,
-            totalPages: 1,
-            hasNext: false,
-            hasPrev: false
-        }
-    });
-    
-    res.json({
-        success: true,
-        users: formattedUsers,
+        data: users.map(user => ({
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            profile: user.profile ? JSON.parse(user.profile) : null,
+            is_active: user.is_active,
+            created_at: user.created_at,
+            last_login: user.last_login,
+            department_id: user.department_id,
+            department_name: user.department_name
+        })),
         pagination: {
             page: parseInt(page),
             limit: parseInt(limit),

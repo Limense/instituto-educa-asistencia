@@ -1,191 +1,187 @@
 /**
- * Authentication Module - Completamente basado en API
- * Sin localStorage, solo manejo de sesión con JWT
+ * Instituto Educa - Gestor de Autenticación
+ * Sistema de Control de Asistencia v2.0
  */
+
 class AuthManager {
-    static #instance = null;
-    
     constructor() {
-        if (AuthManager.#instance) {
-            return AuthManager.#instance;
-        }
-        
-        this.authService = null; // Se inicializará después
+        this.apiService = new ApiService();
         this.currentUser = null;
-        this.isAuthenticated = false;
+        this.sessionId = null;
+        this.storageKey = 'instituto_educa_session';
+        this.userKey = 'instituto_educa_user';
         
-        // Suscribirse a eventos de autenticación
-        EventBus.on(EventBus.EVENTS.AUTH_LOGIN, (user) => {
-            this.currentUser = user;
-            this.isAuthenticated = true;
-        });
-        
-        EventBus.on(EventBus.EVENTS.AUTH_LOGOUT, () => {
-            this.currentUser = null;
-            this.isAuthenticated = false;
-        });
-        
-        AuthManager.#instance = this;
+        console.log('🔐 AuthManager inicializado');
+        this.loadStoredSession();
     }
-    
-    // Inicializar AuthService después de que esté disponible
-    initializeService() {
-        if (!this.authService && window.authService) {
-            this.authService = window.authService;
-        }
-    }
-    
-    static getInstance() {
-        if (!AuthManager.#instance) {
-            AuthManager.#instance = new AuthManager();
-        }
-        return AuthManager.#instance;
-    }
-    
-    // Login principal
-    async login(username, password) {
+
+    loadStoredSession() {
         try {
-            // Asegurar que el servicio esté inicializado
-            this.initializeService();
-            
-            if (!this.authService) {
-                throw new Error('AuthService no está disponible');
-            }
-            
-            const result = await this.authService.login(username, password);
-            
-            if (result.success) {
-                console.log('✅ Login exitoso:', result.user.username);
-                return result.user;
-            } else {
-                console.error('❌ Error de login:', result.message);
-                throw new Error(result.message);
+            const storedUser = localStorage.getItem(this.userKey);
+            const storedSession = localStorage.getItem(this.storageKey);
+
+            if (storedUser && storedSession) {
+                this.currentUser = JSON.parse(storedUser);
+                this.sessionId = storedSession;
+                console.log('📦 Sesión cargada desde localStorage:', this.currentUser.username);
             }
         } catch (error) {
-            console.error('❌ Error en autenticación:', error);
-            throw error;
+            console.error('Error cargando sesión almacenada:', error);
+            this.clearStoredSession();
         }
     }
-    
-    // Logout
+
+    saveSession(user, sessionId) {
+        try {
+            localStorage.setItem(this.userKey, JSON.stringify(user));
+            localStorage.setItem(this.storageKey, sessionId);
+            this.currentUser = user;
+            this.sessionId = sessionId;
+            console.log('💾 Sesión guardada en localStorage');
+        } catch (error) {
+            console.error('Error guardando sesión:', error);
+        }
+    }
+
+    clearStoredSession() {
+        localStorage.removeItem(this.userKey);
+        localStorage.removeItem(this.storageKey);
+        this.currentUser = null;
+        this.sessionId = null;
+        console.log('🗑️ Sesión eliminada de localStorage');
+    }    async login(username, password) {
+        try {
+            console.log(`🔑 Intentando login para: ${username}`);
+            
+            const response = await this.apiService.post('/auth/login', {
+                username,
+                password
+            });
+
+            if (response.success) {
+                // El backend devuelve user y token directamente en la respuesta, no en response.data
+                const { user, token } = response;
+                
+                // Guardar sesión
+                this.saveSession(user, token);
+                
+                console.log('✅ Login exitoso:', user.username);
+                return user;
+            } else {
+                throw new Error(response.message || 'Error de autenticación');
+            }
+        } catch (error) {
+            console.error('❌ Error en login:', error);
+            throw new Error(error.message || 'Error de conexión al servidor');
+        }
+    }
+
     async logout() {
         try {
-            this.initializeService();
+            console.log('🚪 Cerrando sesión...');
             
-            if (!this.authService) {
-                throw new Error('AuthService no está disponible');
+            // Notificar al servidor (opcional, puede fallar si no hay conexión)
+            try {
+                await this.apiService.post('/auth/logout');
+            } catch (error) {
+                console.warn('No se pudo notificar logout al servidor:', error);
             }
+
+            // Limpiar sesión local
+            this.clearStoredSession();
             
-            await this.authService.logout();
-            console.log('👋 Logout exitoso');
+            console.log('✅ Sesión cerrada correctamente');
             return true;
         } catch (error) {
             console.error('❌ Error en logout:', error);
-            return false;
+            // Aún así limpiar sesión local
+            this.clearStoredSession();
+            throw error;
         }
     }
-    
-    // Obtener usuario actual
+
+    async verifySession() {
+        if (!this.currentUser || !this.sessionId) {
+            console.log('❌ No hay sesión para verificar');
+            return false;
+        }
+
+        try {
+            console.log('🔍 Verificando sesión con el servidor...');
+            
+            const response = await this.apiService.get('/auth/verify');
+            
+            if (response.success) {
+                console.log('✅ Sesión válida');
+                return true;
+            } else {
+                console.log('❌ Sesión inválida');
+                this.clearStoredSession();
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Error verificando sesión:', error);
+            // En caso de error de conexión, mantener sesión local temporalmente
+            console.log('⚠️ Manteniendo sesión local debido a error de conexión');
+            return true;
+        }
+    }
+
+    isUserAuthenticated() {
+        return !!(this.currentUser && this.sessionId);
+    }
+
     getCurrentUser() {
         return this.currentUser;
     }
-    
-    // Verificar si está autenticado
-    isUserAuthenticated() {
-        return this.isAuthenticated && !!this.currentUser;
+
+    getSessionId() {
+        return this.sessionId;
     }
-    
-    // Verificar permisos
+
+    getUserRole() {
+        return this.currentUser?.role || null;
+    }
+
     hasPermission(permission) {
         if (!this.currentUser) return false;
         
-        const role = this.currentUser.role;
-        
-        // Administrador tiene todos los permisos
-        if (role === 'administrator') return true;
-        
-        // Verificar permisos específicos del rol
         const rolePermissions = {
-            supervisor: [
-                'attendance.view_team',
-                'reports.view_basic',
-                'users.view_team'
-            ],
-            employee: [
-                'attendance.view_own',
-                'attendance.record_own'
-            ],
-            guest: [
-                'attendance.view_own'
-            ]
+            administrator: ['*'], // Todos los permisos
+            supervisor: ['view_team', 'manage_attendance', 'view_reports'],
+            employee: ['view_own_attendance', 'clock_in_out'],
+            guest: ['view_basic_info']
         };
+
+        const userPermissions = rolePermissions[this.currentUser.role] || [];
         
-        return rolePermissions[role]?.includes(permission) || false;
+        return userPermissions.includes('*') || userPermissions.includes(permission);
     }
-    
-    // Verificar si puede ver datos de otro usuario
-    canViewUser(targetUserId) {
-        if (!this.currentUser) return false;
-        
-        const currentRole = this.currentUser.role;
-        const currentUserId = this.currentUser.id;
-        
-        // Admin puede ver todo
-        if (currentRole === 'administrator') return true;
-        
-        // Usuario puede ver sus propios datos
-        if (currentUserId === targetUserId) return true;
-        
-        // Supervisor puede ver empleados a su cargo (implementar lógica según jerarquía)
-        if (currentRole === 'supervisor') {
-            // TODO: Implementar lógica de jerarquía
-            return true;
+
+    getAuthHeaders() {
+        if (!this.sessionId) {
+            return {};
         }
-        
-        return false;
+
+        return {
+            'Authorization': `Bearer ${this.sessionId}`,
+            'Content-Type': 'application/json'
+        };
     }
-    
-    // En este sistema no persistimos tokens, solo sesión en memoria
-    async initializeFromToken() {
-        // Sin localStorage, no hay inicialización de token persistente
-        // El usuario debe hacer login en cada sesión
-        return false;
+
+    // Método para debug/testing
+    getDebugInfo() {
+        return {
+            isAuthenticated: this.isUserAuthenticated(),
+            currentUser: this.currentUser?.username || null,
+            userRole: this.getUserRole(),
+            hasSession: !!this.sessionId,
+            sessionLength: this.sessionId?.length || 0
+        };
     }
 }
 
-// Auth object para compatibilidad con código existente
-const Auth = {
-    manager: AuthManager.getInstance(),
-    
-    async login(username, password) {
-        return await this.manager.login(username, password);
-    },
-    
-    async logout() {
-        return await this.manager.logout();
-    },
-    
-    getCurrentUser() {
-        return this.manager.getCurrentUser();
-    },
-    
-    isAuthenticated() {
-        return this.manager.isUserAuthenticated();
-    },
-    
-    hasPermission(permission) {
-        return this.manager.hasPermission(permission);
-    },
-    
-    canViewUser(userId) {
-        return this.manager.canViewUser(userId);
-    },
-    
-    async initialize() {
-        return await this.manager.initializeFromToken();
-    }
-};
-
-// Export para uso global
-window.Auth = Auth;
+// Exportar para uso global
 window.AuthManager = AuthManager;
+
+console.log('🔐 AuthManager clase definida y disponible globalmente');
