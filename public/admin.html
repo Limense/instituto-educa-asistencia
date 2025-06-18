@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Admin - Sistema de Asistencia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #EC5971 0%, #ff8a9b 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 10px 10px 0 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            background: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            border-bottom-color: #EC5971;
+            background: #f8fafc;
+        }
+
+        .tab-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            min-height: 500px;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e1e1e1;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #EC5971;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #EC5971 0%, #ff8a9b 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .table th,
+        .table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .badge-admin {
+            background: #ddd6fe;
+            color: #5b21b6;
+        }
+
+        .badge-user {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .badge-completo {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-incompleto {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+
+        .message-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+
+        .message-error {
+            background: #fee;
+            color: #c33;
+            border-left: 4px solid #ef4444;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            align-items: end;
+        }
+
+        .filter-group {
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <h1>👨‍💼 Panel Administrativo</h1>
+            </div>
+            <div class="nav-links">
+                <span id="notificationBadge" style="background: #ef4444; color: white; padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.8rem; display: none;">0</span>
+                <a href="/" class="nav-link">Dashboard</a>
+                <a href="/login" class="nav-link" onclick="logout()">Cerrar Sesión</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('empleados')">👥 Empleados</button>
+            <button class="tab" onclick="showTab('notificaciones')">🔔 Notificaciones</button>
+            <button class="tab" onclick="showTab('reportes')">📊 Reportes</button>
+            <button class="tab" onclick="showTab('nuevo-empleado')">➕ Nuevo Empleado</button>
+        </div>
+
+        <div class="tab-content">
+            <!-- Tab Empleados -->
+            <div id="empleados" class="tab-pane active">
+                <h2 style="margin-bottom: 1.5rem;">Lista de Empleados</h2>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Tipo</th>
+                            <th>Fecha Registro</th>
+                        </tr>
+                    </thead>
+                    <tbody id="empleadosTable">
+                        <tr>
+                            <td colspan="5">Cargando empleados...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tab Notificaciones -->
+            <div id="notificaciones" class="tab-pane">
+                <h2 style="margin-bottom: 1.5rem;">🔔 Notificaciones y Alertas</h2>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <!-- Sin marcar hoy -->
+                    <div class="card" style="margin: 0;">
+                        <h3 style="color: #EC5971; margin-bottom: 1rem;">⚠️ Sin marcar hoy</h3>
+                        <div id="sinMarcarHoy">
+                            <p style="color: #666;">Cargando...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Asistencias incompletas ayer -->
+                    <div class="card" style="margin: 0;">
+                        <h3 style="color: #f59e0b; margin-bottom: 1rem;">⏰ Incompletas ayer</h3>
+                        <div id="incompletasAyer">
+                            <p style="color: #666;">Cargando...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 2rem; padding: 1rem; background: #f8fafc; border-radius: 8px;">
+                    <h4 style="margin-bottom: 0.5rem;">📋 Resumen del día</h4>
+                    <p id="resumenDia" style="color: #666; margin: 0;">Cargando estadísticas...</p>
+                </div>
+            </div>
+
+            <!-- Tab Reportes -->
+            <div id="reportes" class="tab-pane">
+                <h2 style="margin-bottom: 1.5rem;">Reportes de Asistencia</h2>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="fechaInicio">Fecha Inicio</label>
+                        <input type="date" id="fechaInicio">
+                    </div>
+                    <div class="filter-group">
+                        <label for="fechaFin">Fecha Fin</label>
+                        <input type="date" id="fechaFin">
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="generarReporte()">
+                            📋 Generar Reporte
+                        </button>
+                    </div>
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Empleado</th>
+                            <th>Email</th>
+                            <th>Fecha</th>
+                            <th>Entrada</th>
+                            <th>Salida</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reporteTable">
+                        <tr>
+                            <td colspan="6">Selecciona fechas y genera un reporte</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tab Nuevo Empleado -->
+            <div id="nuevo-empleado" class="tab-pane">
+                <h2 style="margin-bottom: 1.5rem;">Crear Nuevo Empleado</h2>
+                
+                <div id="messageEmpleado" style="display: none;"></div>
+
+                <form id="nuevoEmpleadoForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nombre">Nombre Completo</label>
+                            <input type="text" id="nombre" name="nombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="emailNuevo">Correo Electrónico</label>
+                            <input type="email" id="emailNuevo" name="email" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="passwordNuevo">Contraseña</label>
+                            <input type="password" id="passwordNuevo" name="password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="tipoUsuario">Tipo de Usuario</label>
+                            <select id="tipoUsuario" name="es_admin">
+                                <option value="false">Empleado</option>
+                                <option value="true">Administrador</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="btnCrearEmpleado">
+                        👤 Crear Empleado
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Cargar notificaciones
+        async function loadNotificaciones() {
+            try {
+                const response = await fetch('/api/admin/notificaciones');
+                const data = await response.json();
+                
+                // Sin marcar hoy
+                const sinMarcarDiv = document.getElementById('sinMarcarHoy');
+                if (data.sinMarcarHoy.length === 0) {
+                    sinMarcarDiv.innerHTML = '<p style="color: #10b981;">✅ Todos marcaron asistencia hoy</p>';
+                } else {
+                    sinMarcarDiv.innerHTML = data.sinMarcarHoy.map(emp => `
+                        <div style="padding: 0.5rem; background: #fee; border-left: 3px solid #ef4444; margin-bottom: 0.5rem; border-radius: 4px;">
+                            <strong>${emp.nombre}</strong><br>
+                            <small style="color: #666;">${emp.email}</small>
+                        </div>
+                    `).join('');
+                }
+                
+                // Incompletas ayer
+                const incompletasDiv = document.getElementById('incompletasAyer');
+                if (data.incompletasAyer.length === 0) {
+                    incompletasDiv.innerHTML = '<p style="color: #10b981;">✅ No hay asistencias incompletas</p>';
+                } else {
+                    incompletasDiv.innerHTML = data.incompletasAyer.map(emp => `
+                        <div style="padding: 0.5rem; background: #fef3c7; border-left: 3px solid #f59e0b; margin-bottom: 0.5rem; border-radius: 4px;">
+                            <strong>${emp.nombre}</strong><br>
+                            <small style="color: #666;">Entrada: ${emp.hora_entrada} - Sin salida</small>
+                        </div>
+                    `).join('');
+                }
+                
+                // Resumen
+                const resumenDiv = document.getElementById('resumenDia');
+                const totalEmpleados = data.sinMarcarHoy.length + (await getTotalEmpleados());
+                const marcaron = totalEmpleados - data.sinMarcarHoy.length;
+                const porcentaje = totalEmpleados > 0 ? Math.round((marcaron / totalEmpleados) * 100) : 0;
+                
+                resumenDiv.innerHTML = `
+                    <strong>${marcaron}/${totalEmpleados}</strong> empleados marcaron asistencia hoy (${porcentaje}%)
+                    ${data.incompletasAyer.length > 0 ? ` • <span style="color: #f59e0b;">${data.incompletasAyer.length} asistencias incompletas ayer</span>` : ''}
+                `;
+                
+                // Actualizar badge de notificaciones
+                const badge = document.getElementById('notificationBadge');
+                const totalAlertas = data.sinMarcarHoy.length + data.incompletasAyer.length;
+                if (totalAlertas > 0) {
+                    badge.textContent = totalAlertas;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error cargando notificaciones:', error);
+            }
+        }
+        
+        async function getTotalEmpleados() {
+            try {
+                const response = await fetch('/api/admin/empleados');
+                const empleados = await response.json();
+                return empleados.filter(emp => !emp.es_admin).length;
+            } catch (error) {
+                return 0;
+            }
+        }
+
+        // Cambiar entre tabs
+        function showTab(tabName) {
+            // Ocultar todos los tabs
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('active');
+            });
+            
+            // Remover clase active de todos los botones
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Mostrar tab seleccionado
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            // Cargar datos según el tab
+            if (tabName === 'empleados') {
+                loadEmpleados();
+            } else if (tabName === 'notificaciones') {
+                loadNotificaciones();
+            }
+        }
+
+        // Cargar lista de empleados
+        async function loadEmpleados() {
+            try {
+                const response = await fetch('/api/admin/empleados');
+                const empleados = await response.json();
+                
+                const tbody = document.getElementById('empleadosTable');
+                
+                if (empleados.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5">No hay empleados registrados</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = empleados.map(emp => `
+                    <tr>
+                        <td>${emp.id}</td>
+                        <td>${emp.nombre}</td>
+                        <td>${emp.email}</td>
+                        <td>
+                            <span class="badge badge-${emp.es_admin ? 'admin' : 'user'}">
+                                ${emp.es_admin ? 'Admin' : 'Empleado'}
+                            </span>
+                        </td>
+                        <td>${new Date(emp.created_at).toLocaleDateString('es-ES')}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Crear nuevo empleado
+        document.getElementById('nuevoEmpleadoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                nombre: formData.get('nombre'),
+                email: formData.get('email'),
+                password: formData.get('password'),
+                es_admin: formData.get('es_admin') === 'true'
+            };
+
+            const button = document.getElementById('btnCrearEmpleado');
+            const originalText = button.textContent;
+            
+            button.disabled = true;
+            button.textContent = 'Creando...';
+
+            try {
+                const response = await fetch('/api/admin/empleados', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('Empleado creado exitosamente', 'success', 'messageEmpleado');
+                    e.target.reset();
+                    loadEmpleados();
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                showMessage(error.message, 'error', 'messageEmpleado');
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        });
+
+        // Generar reporte
+        async function generarReporte() {
+            const fechaInicio = document.getElementById('fechaInicio').value;
+            const fechaFin = document.getElementById('fechaFin').value;
+            
+            const params = new URLSearchParams();
+            if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+            if (fechaFin) params.append('fecha_fin', fechaFin);
+
+            try {
+                const response = await fetch(`/api/admin/reporte-asistencias?${params}`);
+                const reporte = await response.json();
+                
+                const tbody = document.getElementById('reporteTable');
+                
+                if (reporte.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6">No hay registros en el período seleccionado</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = reporte.map(row => `
+                    <tr>
+                        <td>${row.nombre}</td>
+                        <td>${row.email}</td>
+                        <td>${row.fecha ? new Date(row.fecha).toLocaleDateString('es-ES') : '-'}</td>
+                        <td>${row.hora_entrada || '-'}</td>
+                        <td>${row.hora_salida || '-'}</td>
+                        <td>
+                            <span class="badge badge-${row.estado.toLowerCase().replace(' ', '-')}">
+                                ${row.estado}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Mostrar mensaje
+        function showMessage(text, type, elementId = 'message') {
+            const messageDiv = document.getElementById(elementId);
+            messageDiv.textContent = text;
+            messageDiv.className = `message message-${type}`;
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Logout
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('Error al cerrar sesión:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        // Establecer fechas por defecto
+        function setDefaultDates() {
+            const today = new Date();
+            const lastWeek = new Date(today);
+            lastWeek.setDate(today.getDate() - 7);
+            
+            document.getElementById('fechaInicio').value = lastWeek.toISOString().split('T')[0];
+            document.getElementById('fechaFin').value = today.toISOString().split('T')[0];
+        }
+
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            loadEmpleados();
+            loadNotificaciones();
+            setDefaultDates();
+        });
+    </script>
+</body>
+</html>
