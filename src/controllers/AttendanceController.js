@@ -100,6 +100,16 @@ class AttendanceController {
             res.status(500).json({ error: 'Error del servidor' });
         }
     }
+
+    async getDashboard(req, res) {
+        try {
+            const dashboardData = await this.attendanceModel.getDashboardToday();
+            res.json(dashboardData);
+        } catch (error) {
+            console.error('Error al obtener dashboard:', error);
+            res.status(500).json({ error: 'Error del servidor' });
+        }
+    }
 }
 
 module.exports = AttendanceController;

@@ -131,6 +131,34 @@ class Attendance {
             });
         });
     }
+
+    async getDashboardToday() {
+        return new Promise((resolve, reject) => {
+            const today = new Date().toISOString().split('T')[0];
+            
+            const query = `SELECT e.id, e.nombre, e.email, e.es_admin,
+                                 a.fecha, a.hora_entrada, a.hora_salida,
+                                 a.hora_entrada as entrada,
+                                 a.hora_salida as salida,
+                                 CASE 
+                                     WHEN a.hora_entrada IS NOT NULL AND a.hora_salida IS NOT NULL THEN 'Completo'
+                                     WHEN a.hora_entrada IS NOT NULL THEN 'En trabajo'
+                                     ELSE 'Sin marcar'
+                                 END as estado
+                          FROM empleados e
+                          LEFT JOIN asistencias a ON e.id = a.empleado_id AND a.fecha = ?
+                          ORDER BY e.nombre`;
+            
+            const db = database.getDatabase();
+            db.all(query, [today], (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows);
+                }
+            });
+        });
+    }
 }
 
 module.exports = Attendance;

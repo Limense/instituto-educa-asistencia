@@ -262,9 +262,19 @@ body {
     color: #065f46;
 }
 
-.badge-incompleto {
+.badge-trabajo {
     background: #fef3c7;
     color: #92400e;
+}
+
+.badge-pendiente {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.badge-corta {
+    background: #fed7aa;
+    color: #9a3412;
 }
 
 .badge-sin-registros {
@@ -286,4 +296,190 @@ body {
         gap: 1rem;
         align-items: stretch;
     }
+}
+
+/* Nuevos estilos para tarjetas de empleados */
+.employee-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.employee-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.employee-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.employee-card.jornada-completa {
+    border-left-color: #10b981;
+    background: linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%);
+}
+
+.employee-card.en-trabajo {
+    border-left-color: #f59e0b;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.employee-card.sin-marcar {
+    border-left-color: #ef4444;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
+
+.employee-card.jornada-corta {
+    border-left-color: #f59e0b;
+    background: linear-gradient(135deg, #fffbeb 0%, #fed7aa 100%);
+}
+
+.employee-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.employee-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #EC5971 0%, #ff8a9b 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.employee-info h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #1f2937;
+    font-weight: 600;
+}
+
+.employee-role {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+.status-badge-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+.status-badge-card.completa {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge-card.trabajo {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge-card.pendiente {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-badge-card.corta {
+    background: #fed7aa;
+    color: #9a3412;
+}
+
+.time-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.time-item {
+    text-align: center;
+}
+
+.time-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+}
+
+.time-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.total-time {
+    background: #f3f4f6;
+    padding: 0.75rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.total-time-label {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+}
+
+.total-time-value {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #1f2937;
+}
+
+.warning-time {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.success-time {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.view-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.toggle-btn {
+    padding: 0.5rem 1rem;
+    border: 2px solid #e5e7eb;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.toggle-btn.active {
+    background: #EC5971;
+    border-color: #EC5971;
+    color: white;
+}
+
+.toggle-btn:hover:not(.active) {
+    border-color: #EC5971;
+    color: #EC5971;
 }

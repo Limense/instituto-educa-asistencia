@@ -23,13 +23,50 @@
         <div id="message" class="message" style="display: none;"></div>
 
         <div class="tabs">
-            <button class="tab active" onclick="showTab('empleados')">👥 Empleados</button>
+            <button class="tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
+            <button class="tab" onclick="showTab('empleados')">👥 Empleados</button>
             <button class="tab" onclick="showTab('asistencias')">📊 Asistencias</button>
         </div>
 
         <div class="tab-content">
+            <!-- Tab Dashboard -->
+            <div id="dashboard" class="tab-pane active">
+                <div class="section-header">
+                    <h2>Dashboard de Asistencias - Hoy</h2>
+                    <div class="view-toggle">
+                        <button class="toggle-btn active" onclick="toggleView('cards')">🃏 Tarjetas</button>
+                        <button class="toggle-btn" onclick="toggleView('table')">📋 Tabla</button>
+                    </div>
+                </div>
+
+                <!-- Vista de Tarjetas -->
+                <div id="cardsView" class="employee-cards-grid">
+                    <!-- Las tarjetas se cargarán aquí -->
+                </div>
+
+                <!-- Vista de Tabla (oculta por defecto) -->
+                <div id="tableView" style="display: none;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Empleado</th>
+                                <th>Entrada</th>
+                                <th>Salida</th>
+                                <th>Total</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboardTable">
+                            <tr>
+                                <td colspan="5">Cargando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Tab Empleados -->
-            <div id="empleados" class="tab-pane active">
+            <div id="empleados" class="tab-pane">
                 <div class="section-header">
                     <h2>Gestión de Empleados</h2>
                     <button class="btn btn-primary" onclick="showEmpleadoModal()">➕ Nuevo Empleado</button>

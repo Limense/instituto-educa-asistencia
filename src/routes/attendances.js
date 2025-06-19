@@ -14,5 +14,6 @@ router.get('/estadisticas', requireApiAuth, (req, res) => attendanceController.g
 
 // Rutas admin
 router.get('/todas', requireApiAuth, requireAdmin, (req, res) => attendanceController.getAllAttendances(req, res));
+router.get('/dashboard', requireApiAuth, requireAdmin, (req, res) => attendanceController.getDashboard(req, res));
 
 module.exports = router;

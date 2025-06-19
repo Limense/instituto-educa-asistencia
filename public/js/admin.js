@@ -1,7 +1,9 @@
 // Variables globales
-let currentTab = 'empleados';
+let currentTab = 'dashboard';
+let currentView = 'cards';
 let empleados = [];
 let asistencias = [];
+let dashboardData = [];
 
 // Sistema de tabs
 function showTab(tabName) {
@@ -21,11 +23,217 @@ function showTab(tabName) {
     currentTab = tabName;
     
     // Cargar datos según el tab
-    if (tabName === 'empleados') {
+    if (tabName === 'dashboard') {
+        loadDashboard();
+    } else if (tabName === 'empleados') {
         loadEmpleados();
     } else if (tabName === 'asistencias') {
         loadAsistencias();
     }
+}
+
+// Alternar vista entre tarjetas y tabla
+function toggleView(viewType) {
+    currentView = viewType;
+    
+    // Actualizar botones
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[onclick="toggleView('${viewType}')"]`).classList.add('active');
+    
+    // Mostrar/ocultar vistas
+    if (viewType === 'cards') {
+        document.getElementById('cardsView').style.display = 'grid';
+        document.getElementById('tableView').style.display = 'none';
+        renderEmployeeCards(); // Asegurar que las tarjetas estén actualizadas
+    } else {
+        document.getElementById('cardsView').style.display = 'none';
+        document.getElementById('tableView').style.display = 'block';
+        renderDashboardTable(); // Asegurar que la tabla esté actualizada
+    }
+}
+
+// Cargar dashboard con datos de hoy
+async function loadDashboard() {
+    try {
+        const response = await fetch('/api/attendances/dashboard');
+        const data = await response.json();
+        
+        // Procesar datos para el dashboard
+        dashboardData = processDashboardData(data);
+        
+        // Renderizar ambas vistas para tener los datos listos
+        renderEmployeeCards();
+        renderDashboardTable();
+        
+        // Mostrar la vista actual
+        if (currentView === 'cards') {
+            document.getElementById('cardsView').style.display = 'grid';
+            document.getElementById('tableView').style.display = 'none';
+        } else {
+            document.getElementById('cardsView').style.display = 'none';
+            document.getElementById('tableView').style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Error cargando dashboard:', error);
+        showMessage('Error cargando dashboard', 'error');
+    }
+}
+
+// Procesar datos para el dashboard
+function processDashboardData(rawData) {
+    return rawData.map(emp => {
+        // Calcular tiempo total
+        let tiempoTotal = '';
+        let tiempoEnMinutos = 0;
+        let estadoClase = 'sin-marcar';
+        
+        if (emp.hora_entrada && emp.hora_salida) {
+            const entrada = new Date(`2000-01-01 ${emp.hora_entrada}`);
+            const salida = new Date(`2000-01-01 ${emp.hora_salida}`);
+            tiempoEnMinutos = (salida - entrada) / (1000 * 60);
+            
+            const horas = Math.floor(tiempoEnMinutos / 60);
+            const minutos = Math.floor(tiempoEnMinutos % 60);
+            tiempoTotal = `${horas}h ${minutos}m`;
+            
+            if (tiempoEnMinutos >= 480) { // 8 horas
+                estadoClase = 'jornada-completa';
+                emp.estado = 'Jornada completa';
+            } else {
+                estadoClase = 'jornada-corta';
+                emp.estado = `Jornada corta: ${tiempoTotal}`;
+            }
+        } else if (emp.hora_entrada) {
+            estadoClase = 'en-trabajo';
+            emp.estado = 'En trabajo';
+        } else {
+            estadoClase = 'sin-marcar';
+            emp.estado = 'Sin marcar';
+        }
+        
+        return {
+            ...emp,
+            tiempoTotal,
+            tiempoEnMinutos,
+            estadoClase
+        };
+    });
+}
+
+// Renderizar tarjetas de empleados
+function renderEmployeeCards() {
+    const container = document.getElementById('cardsView');
+    
+    if (dashboardData.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #666;">No hay datos para mostrar</div>';
+        return;
+    }
+    
+    container.innerHTML = dashboardData.map(emp => {
+        const iniciales = emp.nombre.split(' ').map(n => n[0]).join('').toUpperCase();
+        
+        return `
+            <div class="employee-card ${emp.estadoClase}">
+                <div class="employee-header">
+                    <div class="employee-avatar">${iniciales}</div>
+                    <div class="employee-info">
+                        <h3>${emp.nombre}</h3>
+                        <p class="employee-role">${emp.email}</p>
+                    </div>
+                </div>
+                
+                <div class="status-badge-card ${getStatusClass(emp.estadoClase)}">
+                    ${getStatusIcon(emp.estadoClase)} ${emp.estado}
+                </div>
+                
+                <div class="time-info">
+                    <div class="time-item">
+                        <div class="time-label">Entrada</div>
+                        <div class="time-value">${emp.entrada || 'Pendiente'}</div>
+                    </div>
+                    <div class="time-item">
+                        <div class="time-label">Salida</div>
+                        <div class="time-value">${emp.salida || 'Pendiente'}</div>
+                    </div>
+                </div>
+                
+                <div class="total-time ${getTotalTimeClass(emp.tiempoEnMinutos)}">
+                    <div class="total-time-label">Total</div>
+                    <div class="total-time-value">${emp.tiempoTotal || '0h 0m'}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Obtener clase de estado
+function getStatusClass(estadoClase) {
+    const map = {
+        'jornada-completa': 'completa',
+        'en-trabajo': 'trabajo',
+        'sin-marcar': 'pendiente',
+        'jornada-corta': 'corta'
+    };
+    return map[estadoClase] || 'pendiente';
+}
+
+// Obtener icono de estado
+function getStatusIcon(estadoClase) {
+    const map = {
+        'jornada-completa': '✅',
+        'en-trabajo': '🔄',
+        'sin-marcar': '⏸️',
+        'jornada-corta': '⚠️'
+    };
+    return map[estadoClase] || '❓';
+}
+
+// Obtener clase para tiempo total
+function getTotalTimeClass(minutos) {
+    if (minutos >= 480) return 'success-time'; // 8+ horas
+    if (minutos >= 360) return 'warning-time'; // 6+ horas
+    return '';
+}
+
+// Renderizar tabla del dashboard
+function renderDashboardTable() {
+    const tbody = document.getElementById('dashboardTable');
+    
+    if (dashboardData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No hay datos para mostrar</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = dashboardData.map(emp => `
+        <tr>
+            <td>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #EC5971 0%, #ff8a9b 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.9rem;">
+                        ${emp.nombre.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    </div>
+                    <div>
+                        <div style="font-weight: 500;">${emp.nombre}</div>
+                        <div style="font-size: 0.8rem; color: #666;">${emp.email}</div>
+                    </div>
+                </div>
+            </td>
+            <td>${emp.entrada || '-'}</td>
+            <td>${emp.salida || '-'}</td>
+            <td style="font-weight: 500;">${emp.tiempoTotal || '-'}</td>
+            <td>
+                <span class="badge badge-${getStatusClass(emp.estadoClase)}">
+                    ${getStatusIcon(emp.estadoClase)} ${emp.estado}
+                </span>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Obtener fecha de hoy en formato YYYY-MM-DD
+function getTodayDate() {
+    return new Date().toISOString().split('T')[0];
 }
 
 // Cargar empleados
@@ -302,7 +510,7 @@ async function logout() {
 
 // Inicializar página
 document.addEventListener('DOMContentLoaded', function() {
-    showTab('empleados');
+    showTab('dashboard');
     
     // Cerrar modales al hacer click fuera
     window.onclick = function(event) {
