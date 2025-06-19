@@ -1,2 +1,1 @@
-# Archivo de configuración para Railway
-web: npm start
+web: npm run init-db && npm start

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Admin - Sistema de Asistencia</title>
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <h1>🏫 Panel de Administración</h1>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Dashboard</a>
+                <a href="#" onclick="logout()" class="nav-link">Cerrar Sesión</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="message" class="message" style="display: none;"></div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('empleados')">👥 Empleados</button>
+            <button class="tab" onclick="showTab('asistencias')">📊 Asistencias</button>
+        </div>
+
+        <div class="tab-content">
+            <!-- Tab Empleados -->
+            <div id="empleados" class="tab-pane active">
+                <div class="section-header">
+                    <h2>Gestión de Empleados</h2>
+                    <button class="btn btn-primary" onclick="showEmpleadoModal()">➕ Nuevo Empleado</button>
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Rol</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="empleadosTable">
+                        <tr>
+                            <td colspan="5">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tab Asistencias -->
+            <div id="asistencias" class="tab-pane">
+                <div class="section-header">
+                    <h2>Reportes de Asistencia</h2>
+                    <button class="btn btn-success" onclick="exportarAsistencias()">📥 Exportar CSV</button>
+                </div>
+
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="fechaInicio">Fecha Inicio:</label>
+                        <input type="date" id="fechaInicio" onchange="filtrarAsistencias()">
+                    </div>
+                    <div class="filter-group">
+                        <label for="fechaFin">Fecha Fin:</label>
+                        <input type="date" id="fechaFin" onchange="filtrarAsistencias()">
+                    </div>
+                    <div class="filter-group">
+                        <button class="btn btn-primary" onclick="limpiarFiltros()">🔄 Limpiar</button>
+                    </div>
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Empleado</th>
+                            <th>Email</th>
+                            <th>Fecha</th>
+                            <th>Entrada</th>
+                            <th>Salida</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="asistenciasTable">
+                        <tr>
+                            <td colspan="6">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Empleado -->
+    <div id="empleadoModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('empleadoModal')">&times;</span>
+            <h2 id="modalTitle">Nuevo Empleado</h2>
+            
+            <form id="empleadoForm" onsubmit="event.preventDefault(); saveEmpleado();">
+                <input type="hidden" id="empleadoId" name="empleadoId">
+                
+                <div class="form-group">
+                    <label for="empleadoNombre">Nombre:</label>
+                    <input type="text" id="empleadoNombre" name="nombre" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="empleadoEmail">Email:</label>
+                    <input type="email" id="empleadoEmail" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="empleadoPassword">Contraseña:</label>
+                    <input type="password" id="empleadoPassword" name="password">
+                    <small style="color: #666;">Dejar vacío para mantener la contraseña actual (solo edición)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="empleadoAdmin" name="es_admin"> 
+                        Es Administrador
+                    </label>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn" onclick="closeModal('empleadoModal')" style="background: #666;">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/admin.js"></script>
+</body>
+</html>

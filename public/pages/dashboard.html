@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Asistencia</title>
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <h1>🏫 Sistema de Asistencia</h1>
+            </div>
+            <div class="user-info">
+                <span id="userName">Cargando...</span>
+                <a href="/admin" class="admin-link" id="adminLink" style="display: none;">Panel Admin</a>
+                <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Estadísticas -->
+        <div class="stats-grid" style="grid-column: 1 / -1;">
+            <div class="stat-card">
+                <span class="stat-number" id="statHoy">-</span>
+                <div class="stat-label">Estado Hoy</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="statSemana">-</span>
+                <div class="stat-label">Días esta Semana</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="statMes">-</span>
+                <div class="stat-label">Días este Mes</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="statPromedio">-</span>
+                <div class="stat-label">Promedio Mensual</div>
+            </div>
+        </div>
+
+        <div class="card status-card">
+            <h2>⏰ Estado de Hoy</h2>
+            <div class="current-time" id="currentTime"></div>
+            <div class="status-badge" id="statusBadge">Cargando...</div>
+            
+            <div id="message" style="display: none;"></div>
+            
+            <div class="buttons">
+                <button class="btn btn-primary" id="btnEntrada" onclick="marcarAsistencia('entrada')">
+                    📥 Marcar Entrada
+                </button>
+                <button class="btn btn-success" id="btnSalida" onclick="marcarAsistencia('salida')">
+                    📤 Marcar Salida
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📊 Mis Asistencias Recientes</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Entrada</th>
+                        <th>Salida</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="asistenciasTable">
+                    <tr>
+                        <td colspan="4">Cargando...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>
