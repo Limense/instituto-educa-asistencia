@@ -1,81 +1,168 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
-class Database {
+class DatabaseManager {
     constructor() {
-        this.db = null;
+        this.supabase = null;
+        this.initSupabase();
     }
 
-    connect() {
-        return new Promise((resolve, reject) => {
-            const dbPath = path.join(__dirname, '../../database/database.sqlite');
-            this.db = new sqlite3.Database(dbPath, (err) => {
-                if (err) {
-                    console.error('Error al conectar con la base de datos:', err.message);
-                    reject(err);
-                } else {
-                    console.log('Conectado a la base de datos SQLite');
-                    resolve(this.db);
-                }
-            });
-        });
+    initSupabase() {
+        const supabaseUrl = process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error('⚠️  Credenciales de Supabase requeridas: SUPABASE_URL y SUPABASE_SERVICE_KEY');
+        }
+        
+        this.supabase = createClient(supabaseUrl, supabaseKey);
+        console.log('🟢 Conectado a Supabase PostgreSQL');
+    }
+
+    async connect() {
+        try {
+            const { data, error } = await this.supabase.from('empleados').select('count').limit(1);
+            if (error) throw error;
+            return true;
+        } catch (error) {
+            console.error('Error conectando a Supabase:', error.message);
+            throw error;
+        }
+    }
+
+    // Métodos para empleados
+    async getEmpleados() {
+        const { data, error } = await this.supabase
+            .from('empleados')
+            .select('*')
+            .eq('activo', true);
+        
+        if (error) throw error;
+        return data;
+    }
+
+    async getEmpleadoByEmail(email) {
+        const { data, error } = await this.supabase
+            .from('empleados')
+            .select('*')
+            .eq('email', email)
+            .eq('activo', true)
+            .single();
+        
+        if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+        return data;
+    }
+
+    async crearEmpleado(empleado) {
+        const { data, error } = await this.supabase
+            .from('empleados')
+            .insert([empleado])
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    // Métodos para asistencias
+    async getAsistencias(filtros = {}) {
+        let queryBuilder = this.supabase
+            .from('asistencias')
+            .select(`
+                *,
+                empleados (
+                    nombre,
+                    email,
+                    departamento
+                )
+            `);
+        
+        if (filtros.empleado_id) {
+            queryBuilder = queryBuilder.eq('empleado_id', filtros.empleado_id);
+        }
+        
+        if (filtros.fecha_inicio) {
+            queryBuilder = queryBuilder.gte('fecha', filtros.fecha_inicio);
+        }
+        
+        if (filtros.fecha_fin) {
+            queryBuilder = queryBuilder.lte('fecha', filtros.fecha_fin);
+        }
+        
+        const { data, error } = await queryBuilder.order('fecha', { ascending: false });
+        
+        if (error) throw error;
+        return data;
+    }
+
+    async marcarAsistencia(empleadoId, tipo) {
+        const hoy = new Date().toISOString().split('T')[0];
+        const ahora = new Date().toTimeString().split(' ')[0];
+        
+        // Buscar asistencia del día
+        const { data: asistenciaExistente } = await this.supabase
+            .from('asistencias')
+            .select('*')
+            .eq('empleado_id', empleadoId)
+            .eq('fecha', hoy)
+            .single();
+        
+        if (tipo === 'entrada') {
+            if (asistenciaExistente) {
+                throw new Error('Ya se marcó la entrada para hoy');
+            }
+            
+            const { data, error } = await this.supabase
+                .from('asistencias')
+                .insert([{
+                    empleado_id: empleadoId,
+                    fecha: hoy,
+                    hora_entrada: ahora
+                }])
+                .select()
+                .single();
+            
+            if (error) throw error;
+            return data;
+        } else {
+            if (!asistenciaExistente) {
+                throw new Error('Debe marcar entrada primero');
+            }
+            
+            if (asistenciaExistente.hora_salida) {
+                throw new Error('Ya se marcó la salida para hoy');
+            }
+            
+            const { data, error } = await this.supabase
+                .from('asistencias')
+                .update({ hora_salida: ahora })
+                .eq('id', asistenciaExistente.id)
+                .select()
+                .single();
+            
+            if (error) throw error;
+            return data;
+        }
+    }
+
+    async initTables() {
+        console.log('📋 Usando tablas de Supabase');
+        return true;
+    }
+
+    async close() {
+        // Supabase no necesita cierre explícito
+        return Promise.resolve();
     }
 
     getDatabase() {
-        return this.db;
+        return this.supabase;
     }
 
-    close() {
-        return new Promise((resolve, reject) => {
-            if (this.db) {
-                this.db.close((err) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        console.log('Conexión a la base de datos cerrada');
-                        resolve();
-                    }
-                });
-            } else {
-                resolve();
-            }
-        });
-    }
-
-    initTables() {
-        return new Promise((resolve, reject) => {
-            this.db.serialize(() => {
-                // Tabla empleados
-                this.db.run(`CREATE TABLE IF NOT EXISTS empleados (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nombre TEXT NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    password TEXT NOT NULL,
-                    es_admin BOOLEAN DEFAULT 0,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                )`);
-
-                // Tabla asistencias
-                this.db.run(`CREATE TABLE IF NOT EXISTS asistencias (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    empleado_id INTEGER NOT NULL,
-                    fecha DATE NOT NULL,
-                    hora_entrada TEXT,
-                    hora_salida TEXT,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (empleado_id) REFERENCES empleados (id),
-                    UNIQUE(empleado_id, fecha)
-                )`, (err) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        console.log('Tablas de base de datos inicializadas');
-                        resolve();
-                    }
-                });
-            });
-        });
+    getDatabaseType() {
+        return 'supabase';
     }
 }
 
-module.exports = new Database();
+// Instancia singleton
+const databaseManager = new DatabaseManager();
+module.exports = databaseManager;

@@ -27,7 +27,7 @@ class EmployeeController {
             res.status(201).json(employee);
         } catch (error) {
             console.error('Error al crear empleado:', error);
-            if (error.code === 'SQLITE_CONSTRAINT') {
+            if (error.code === '23505' || error.code === 'SQLITE_CONSTRAINT') {
                 res.status(400).json({ error: 'El email ya está registrado' });
             } else {
                 res.status(500).json({ error: 'Error del servidor' });
@@ -51,7 +51,7 @@ class EmployeeController {
             res.json({ success: true });
         } catch (error) {
             console.error('Error al actualizar empleado:', error);
-            if (error.code === 'SQLITE_CONSTRAINT') {
+            if (error.code === '23505' || error.code === 'SQLITE_CONSTRAINT') {
                 res.status(400).json({ error: 'El email ya está registrado' });
             } else {
                 res.status(500).json({ error: 'Error del servidor' });

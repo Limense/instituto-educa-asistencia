@@ -1,163 +1,165 @@
 const database = require('../config/database');
 
 class Attendance {
+    async marcarAsistencia(empleadoId, tipo) {
+        return await database.marcarAsistencia(empleadoId, tipo);
+    }
+
+    async markEntry(empleadoId, fecha, hora) {
+        return await database.marcarAsistencia(empleadoId, 'entrada');
+    }
+
+    async markExit(empleadoId, fecha, hora) {
+        return await database.marcarAsistencia(empleadoId, 'salida');
+    }
+
     async getByEmployeeAndDate(empleadoId, fecha) {
-        return new Promise((resolve, reject) => {
-            const db = database.getDatabase();
-            db.get(
-                'SELECT * FROM asistencias WHERE empleado_id = ? AND fecha = ?',
-                [empleadoId, fecha],
-                (err, row) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(row);
-                    }
-                }
-            );
+        const asistencias = await database.getAsistencias({
+            empleado_id: empleadoId,
+            fecha_inicio: fecha,
+            fecha_fin: fecha
         });
+        return asistencias.length > 0 ? asistencias[0] : null;
     }
 
-    async markEntry(empleadoId, fecha, horaEntrada) {
-        return new Promise((resolve, reject) => {
-            const db = database.getDatabase();
-            db.run(
-                'INSERT OR REPLACE INTO asistencias (empleado_id, fecha, hora_entrada) VALUES (?, ?, ?)',
-                [empleadoId, fecha, horaEntrada],
-                function(err) {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve({ id: this.lastID });
-                    }
-                }
-            );
-        });
+    async getAsistenciasPorEmpleado(empleadoId, fechaInicio = null, fechaFin = null) {
+        const filtros = { empleado_id: empleadoId };
+        
+        if (fechaInicio) filtros.fecha_inicio = fechaInicio;
+        if (fechaFin) filtros.fecha_fin = fechaFin;
+        
+        return await database.getAsistencias(filtros);
     }
 
-    async markExit(empleadoId, fecha, horaSalida) {
-        return new Promise((resolve, reject) => {
-            const db = database.getDatabase();
-            db.run(
-                'UPDATE asistencias SET hora_salida = ? WHERE empleado_id = ? AND fecha = ?',
-                [horaSalida, empleadoId, fecha],
-                function(err) {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve({ changes: this.changes });
-                    }
-                }
-            );
+    async getTodasAsistencias(filtros = {}) {
+        return await database.getAsistencias(filtros);
+    }
+
+    async getAsistenciaHoy(empleadoId) {
+        const hoy = new Date().toISOString().split('T')[0];
+        const asistencias = await this.getAsistenciasPorEmpleado(empleadoId, hoy, hoy);
+        return asistencias.length > 0 ? asistencias[0] : null;
+    }
+
+    async getEstadisticasMensuales(empleadoId, año, mes) {
+        const fechaInicio = `${año}-${mes.toString().padStart(2, '0')}-01`;
+        const fechaFin = `${año}-${mes.toString().padStart(2, '0')}-31`;
+        
+        const asistencias = await this.getAsistenciasPorEmpleado(empleadoId, fechaInicio, fechaFin);
+        
+        const stats = {
+            diasTrabajados: asistencias.length,
+            diasCompletos: asistencias.filter(a => a.hora_entrada && a.hora_salida).length,
+            totalHoras: 0
+        };
+
+        asistencias.forEach(asistencia => {
+            if (asistencia.hora_entrada && asistencia.hora_salida) {
+                const entrada = new Date(`1970-01-01T${asistencia.hora_entrada}`);
+                const salida = new Date(`1970-01-01T${asistencia.hora_salida}`);
+                const horas = (salida - entrada) / (1000 * 60 * 60);
+                stats.totalHoras += horas;
+            }
         });
+
+        stats.promedioHorasDiarias = stats.diasCompletos > 0 ? 
+            (stats.totalHoras / stats.diasCompletos).toFixed(2) : 0;
+
+        return stats;
+    }
+
+    async exportarCSV(filtros = {}) {
+        const asistencias = await this.getTodasAsistencias(filtros);
+        
+        let csv = 'Fecha,Empleado,Email,Departamento,Hora Entrada,Hora Salida,Horas Trabajadas\n';
+        
+        asistencias.forEach(asistencia => {
+            let horasTrabajadas = '';
+            if (asistencia.hora_entrada && asistencia.hora_salida) {
+                const entrada = new Date(`1970-01-01T${asistencia.hora_entrada}`);
+                const salida = new Date(`1970-01-01T${asistencia.hora_salida}`);
+                horasTrabajadas = ((salida - entrada) / (1000 * 60 * 60)).toFixed(2);
+            }
+            
+            csv += `${asistencia.fecha},${asistencia.nombre || ''},${asistencia.email || ''},${asistencia.departamento || ''},${asistencia.hora_entrada || ''},${asistencia.hora_salida || ''},${horasTrabajadas}\n`;
+        });
+        
+        return csv;
     }
 
     async getEmployeeAttendances(empleadoId, limit = 10) {
-        return new Promise((resolve, reject) => {
-            const db = database.getDatabase();
-            db.all(
-                `SELECT a.*, e.nombre as empleado_nombre 
-                 FROM asistencias a 
-                 JOIN empleados e ON a.empleado_id = e.id 
-                 WHERE a.empleado_id = ? 
-                 ORDER BY a.fecha DESC 
-                 LIMIT ?`,
-                [empleadoId, limit],
-                (err, rows) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(rows);
-                    }
-                }
-            );
-        });
+        const asistencias = await this.getAsistenciasPorEmpleado(empleadoId);
+        return asistencias.slice(0, limit);
     }
 
-    async getMonthlyStats(empleadoId, year, month) {
-        return new Promise((resolve, reject) => {
-            const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-            const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
+    async getMonthlyStats(empleadoId, año, mes) {
+        const fechaInicio = `${año}-${mes.toString().padStart(2, '0')}-01`;
+        const fechaFin = `${año}-${mes.toString().padStart(2, '0')}-31`;
+        
+        // Obtener asistencias del mes
+        const asistenciasMes = await this.getAsistenciasPorEmpleado(empleadoId, fechaInicio, fechaFin);
+        
+        // Obtener asistencias de la semana actual
+        const hoy = new Date();
+        const inicioSemana = new Date(hoy);
+        inicioSemana.setDate(hoy.getDate() - hoy.getDay());
+        const finSemana = new Date(inicioSemana);
+        finSemana.setDate(inicioSemana.getDate() + 6);
+        
+        const asistenciasSemana = await this.getAsistenciasPorEmpleado(
+            empleadoId, 
+            inicioSemana.toISOString().split('T')[0],
+            finSemana.toISOString().split('T')[0]
+        );
 
-            const db = database.getDatabase();
-            db.all(
-                `SELECT COUNT(*) as dias_trabajados,
-                        COUNT(CASE WHEN hora_entrada IS NOT NULL AND hora_salida IS NOT NULL THEN 1 END) as dias_completos
-                 FROM asistencias 
-                 WHERE empleado_id = ? AND fecha BETWEEN ? AND ?`,
-                [empleadoId, startDate, endDate],
-                (err, rows) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(rows[0] || { dias_trabajados: 0, dias_completos: 0 });
-                    }
-                }
-            );
-        });
+        // Asistencia de hoy
+        const asistenciaHoy = await this.getAsistenciaHoy(empleadoId);
+        
+        return {
+            dias_trabajados_mes: asistenciasMes.length,
+            dias_completos_mes: asistenciasMes.filter(a => a.hora_entrada && a.hora_salida).length,
+            dias_trabajados_semana: asistenciasSemana.length,
+            tiene_asistencia_hoy: asistenciaHoy ? true : false,
+            promedio_mensual: asistenciasMes.length > 0 ? 
+                Math.round((asistenciasMes.filter(a => a.hora_entrada && a.hora_salida).length / asistenciasMes.length) * 100) : 0
+        };
     }
 
     async getAllAttendances(fechaInicio = null, fechaFin = null) {
-        return new Promise((resolve, reject) => {
-            let query = `SELECT e.id, e.nombre, e.email,
-                               a.fecha, a.hora_entrada, a.hora_salida,
-                               CASE 
-                                   WHEN a.hora_entrada IS NOT NULL AND a.hora_salida IS NOT NULL THEN 'Completo'
-                                   WHEN a.hora_entrada IS NOT NULL THEN 'Solo entrada'
-                                   ELSE 'Sin registros'
-                               END as estado
-                        FROM empleados e
-                        LEFT JOIN asistencias a ON e.id = a.empleado_id`;
-            
-            let params = [];
-            
-            if (fechaInicio && fechaFin) {
-                query += ` WHERE a.fecha BETWEEN ? AND ?`;
-                params = [fechaInicio, fechaFin];
-            } else if (fechaInicio) {
-                query += ` WHERE a.fecha >= ?`;
-                params = [fechaInicio];
-            }
-            
-            query += ` ORDER BY e.nombre, a.fecha DESC`;
-            
-            const db = database.getDatabase();
-            db.all(query, params, (err, rows) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(rows);
-                }
-            });
-        });
+        const filtros = {};
+        if (fechaInicio) filtros.fecha_inicio = fechaInicio;
+        if (fechaFin) filtros.fecha_fin = fechaFin;
+        
+        return await database.getAsistencias(filtros);
     }
 
     async getDashboardToday() {
-        return new Promise((resolve, reject) => {
-            const today = new Date().toISOString().split('T')[0];
+        const hoy = new Date().toISOString().split('T')[0];
+        const empleados = await database.getEmpleados();
+        
+        const estadisticas = {
+            totalEmpleados: empleados.length,
+            presente: 0,
+            ausente: 0,
+            trabajando: 0,
+            jornada_completa: 0
+        };
+
+        for (const empleado of empleados) {
+            const asistenciaHoy = await this.getByEmployeeAndDate(empleado.id, hoy);
             
-            const query = `SELECT e.id, e.nombre, e.email, e.es_admin,
-                                 a.fecha, a.hora_entrada, a.hora_salida,
-                                 a.hora_entrada as entrada,
-                                 a.hora_salida as salida,
-                                 CASE 
-                                     WHEN a.hora_entrada IS NOT NULL AND a.hora_salida IS NOT NULL THEN 'Completo'
-                                     WHEN a.hora_entrada IS NOT NULL THEN 'En trabajo'
-                                     ELSE 'Sin marcar'
-                                 END as estado
-                          FROM empleados e
-                          LEFT JOIN asistencias a ON e.id = a.empleado_id AND a.fecha = ?
-                          ORDER BY e.nombre`;
-            
-            const db = database.getDatabase();
-            db.all(query, [today], (err, rows) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(rows);
-                }
-            });
-        });
+            if (!asistenciaHoy || !asistenciaHoy.hora_entrada) {
+                estadisticas.ausente++;
+            } else if (asistenciaHoy.hora_entrada && !asistenciaHoy.hora_salida) {
+                estadisticas.presente++;
+                estadisticas.trabajando++;
+            } else if (asistenciaHoy.hora_entrada && asistenciaHoy.hora_salida) {
+                estadisticas.presente++;
+                estadisticas.jornada_completa++;
+            }
+        }
+
+        return estadisticas;
     }
 }
 

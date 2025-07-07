@@ -3,106 +3,109 @@ const database = require('../config/database');
 
 class Employee {
     async findByEmail(email) {
-        return new Promise((resolve, reject) => {
-            const db = database.getDatabase();
-            db.get('SELECT * FROM empleados WHERE email = ?', [email], (err, row) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(row);
-                }
-            });
-        });
+        return await database.getEmpleadoByEmail(email);
     }
 
     async findById(id) {
-        return new Promise((resolve, reject) => {
-            const db = database.getDatabase();
-            db.get('SELECT * FROM empleados WHERE id = ?', [id], (err, row) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(row);
-                }
+        if (database.getDatabaseType() === 'supabase') {
+            const { data, error } = await database.getDatabase()
+                .from('empleados')
+                .select('*')
+                .eq('id', id)
+                .eq('activo', true)
+                .single();
+            
+            if (error && error.code !== 'PGRST116') throw error;
+            return data;
+        } else {
+            return new Promise((resolve, reject) => {
+                const db = database.getDatabase();
+                db.get('SELECT * FROM empleados WHERE id = ? AND activo = 1', [id], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
             });
-        });
+        }
     }
 
     async getAll() {
-        return new Promise((resolve, reject) => {
-            const db = database.getDatabase();
-            db.all('SELECT id, nombre, email, es_admin, created_at FROM empleados ORDER BY nombre', (err, rows) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(rows);
-                }
-            });
-        });
+        return await database.getEmpleados();
     }
 
-    async create(nombre, email, password, esAdmin = false) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const hashedPassword = await bcrypt.hash(password, 10);
-                const db = database.getDatabase();
-                db.run(
-                    'INSERT INTO empleados (nombre, email, password, es_admin) VALUES (?, ?, ?, ?)',
-                    [nombre, email, hashedPassword, esAdmin ? 1 : 0],
-                    function(err) {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve({ id: this.lastID, nombre, email, es_admin: esAdmin });
-                        }
-                    }
-                );
-            } catch (error) {
-                reject(error);
+    async create(nombre, email, password, departamento = null, esAdmin = false) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        const empleadoData = {
+            nombre,
+            email,
+            password: hashedPassword,
+            departamento,
+            es_admin: esAdmin,
+            activo: true
+        };
+
+        return await database.crearEmpleado(empleadoData);
+    }
+
+    async update(id, nombre, email, password = null, departamento = null) {
+        if (database.getDatabaseType() === 'supabase') {
+            const updateData = { nombre, email, departamento };
+            
+            if (password) {
+                updateData.password = await bcrypt.hash(password, 10);
             }
-        });
-    }
 
-    async update(id, nombre, email, password = null) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let query = 'UPDATE empleados SET nombre = ?, email = ?';
-                let params = [nombre, email];
-
+            const { data, error } = await database.getDatabase()
+                .from('empleados')
+                .update(updateData)
+                .eq('id', id)
+                .select()
+                .single();
+            
+            if (error) throw error;
+            return data;
+        } else {
+            return new Promise(async (resolve, reject) => {
+                const db = database.getDatabase();
+                
+                let sql = 'UPDATE empleados SET nombre = ?, email = ?, departamento = ?';
+                let params = [nombre, email, departamento];
+                
                 if (password) {
                     const hashedPassword = await bcrypt.hash(password, 10);
-                    query += ', password = ?';
+                    sql += ', password = ?';
                     params.push(hashedPassword);
                 }
-
-                query += ' WHERE id = ?';
+                
+                sql += ' WHERE id = ?';
                 params.push(id);
-
-                const db = database.getDatabase();
-                db.run(query, params, function(err) {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve({ changes: this.changes });
-                    }
+                
+                db.run(sql, params, function(err) {
+                    if (err) reject(err);
+                    else resolve({ id, nombre, email, departamento });
                 });
-            } catch (error) {
-                reject(error);
-            }
-        });
+            });
+        }
     }
 
     async delete(id) {
-        return new Promise((resolve, reject) => {
-            const db = database.getDatabase();
-            db.run('DELETE FROM empleados WHERE id = ?', [id], function(err) {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve({ changes: this.changes });
-                }
+        if (database.getDatabaseType() === 'supabase') {
+            const { error } = await database.getDatabase()
+                .from('empleados')
+                .update({ activo: false })
+                .eq('id', id);
+            
+            if (error) throw error;
+            return true;
+        } else {
+            return new Promise((resolve, reject) => {
+                const db = database.getDatabase();
+                db.run('UPDATE empleados SET activo = 0 WHERE id = ?', [id], function(err) {
+                    if (err) reject(err);
+                    else resolve(this.changes > 0);
+                });
             });
-        });
+        }
     }
 
     async validatePassword(plainPassword, hashedPassword) {

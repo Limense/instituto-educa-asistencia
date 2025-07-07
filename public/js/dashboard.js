@@ -242,12 +242,25 @@ async function loadEstadisticas() {
         const response = await fetch('/api/attendances/estadisticas');
         const stats = await response.json();
         
-        document.getElementById('statHoy').textContent = stats.dias_trabajados > 0 ? 'Sí' : 'No';
-        document.getElementById('statSemana').textContent = stats.dias_trabajados;
-        document.getElementById('statMes').textContent = stats.dias_trabajados;
-        document.getElementById('statPromedio').textContent = Math.round((stats.dias_completos / Math.max(stats.dias_trabajados, 1)) * 100) + '%';
+        // Estado de hoy
+        document.getElementById('statHoy').textContent = stats.tiene_asistencia_hoy ? 'Sí' : 'No';
+        
+        // Días esta semana
+        document.getElementById('statSemana').textContent = stats.dias_trabajados_semana || 0;
+        
+        // Días este mes
+        document.getElementById('statMes').textContent = stats.dias_trabajados_mes || 0;
+        
+        // Promedio mensual
+        document.getElementById('statPromedio').textContent = `${stats.promedio_mensual || 0}%`;
+        
     } catch (error) {
         console.error('Error cargando estadísticas:', error);
+        // Valores por defecto en caso de error
+        document.getElementById('statHoy').textContent = 'No';
+        document.getElementById('statSemana').textContent = '0';
+        document.getElementById('statMes').textContent = '0';
+        document.getElementById('statPromedio').textContent = 'NaN%';
     }
 }
 

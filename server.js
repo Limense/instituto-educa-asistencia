@@ -12,6 +12,7 @@ const { requireAuth, requireAdmin } = require('./src/middleware/auth');
 const authRoutes = require('./src/routes/auth');
 const employeeRoutes = require('./src/routes/employees');
 const attendanceRoutes = require('./src/routes/attendances');
+const healthApp = require('./src/health');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,8 +29,10 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: false, // Cambiar a true en producción con HTTPS
-        maxAge: 24 * 60 * 60 * 1000 // 24 horas
+        secure: process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE === 'true',
+        maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 24 * 60 * 60 * 1000, // 24 horas
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
     }
 }));
 
@@ -54,10 +57,17 @@ app.get('/admin', requireAuth, requireAdmin, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'pages', 'admin.html'));
 });
 
+app.get('/dashboard', requireAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'pages', 'dashboard.html'));
+});
+
 // Rutas API
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/attendances', attendanceRoutes);
+
+// Health check routes
+app.use('/', healthApp);
 
 // Inicializar la aplicación
 async function initializeApp() {
@@ -72,7 +82,7 @@ async function initializeApp() {
         app.listen(PORT, () => {
             console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
             console.log(`📊 Panel admin: http://localhost:${PORT}/admin`);
-            console.log(`📁 Base de datos: database/database.sqlite`);
+            console.log(`� Base de datos: Supabase PostgreSQL`);
         });
         
     } catch (error) {
