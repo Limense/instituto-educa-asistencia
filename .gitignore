@@ -28,6 +28,11 @@ Thumbs.db
 
 # IDE
 .vscode/
+
+# Archivos temporales
+*.tmp
+*.temp
+/tmp/
 .idea/
 *.swp
 *.swo

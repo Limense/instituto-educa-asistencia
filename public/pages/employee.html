@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Empleado - Sistema de Asistencia</title>
+    <link rel="stylesheet" href="/css/employee.css">
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                <h1>👤 Portal del Empleado</h1>
+            </div>
+            <div class="user-info">
+                <span id="userName">Cargando...</span>
+                <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="message" class="message" style="display: none;"></div>
+
+        <!-- Estado de hoy -->
+        <div class="today-status">
+            <h2>📅 Mi Estado de Hoy</h2>
+            <div class="status-card" id="todayStatus">
+                <div class="status-info">
+                    <div class="time-display" id="currentTime">--:--:--</div>
+                    <div class="status-label" id="statusLabel">Cargando...</div>
+                    <div class="work-summary" id="workSummary">
+                        <span id="entryTime">--:--</span> - <span id="exitTime">--:--</span>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button id="entryBtn" class="btn btn-success" onclick="markEntry()">
+                        ⏰ Marcar Entrada
+                    </button>
+                    <button id="exitBtn" class="btn btn-danger" onclick="markExit()" style="display: none;">
+                        🚪 Marcar Salida
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mis estadísticas -->
+        <div class="stats-section">
+            <h2>📊 Mis Estadísticas del Mes</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="diasTrabajados">0</div>
+                    <div class="stat-label">Días Trabajados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="horasTotales">0h</div>
+                    <div class="stat-label">Horas Totales</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="promedioHoras">0h</div>
+                    <div class="stat-label">Promedio Diario</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="puntualidad">100%</div>
+                    <div class="stat-label">Puntualidad</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mis asistencias recientes -->
+        <div class="attendance-section">
+            <h2>📋 Mis Asistencias Recientes</h2>
+            <div class="table-container">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Entrada</th>
+                            <th>Salida</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTable">
+                        <tr>
+                            <td colspan="5">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/employee.js"></script>
+</body>
+</html>

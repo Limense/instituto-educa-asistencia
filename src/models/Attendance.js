@@ -116,12 +116,10 @@ class Attendance {
         const asistenciaHoy = await this.getAsistenciaHoy(empleadoId);
         
         return {
-            dias_trabajados_mes: asistenciasMes.length,
-            dias_completos_mes: asistenciasMes.filter(a => a.hora_entrada && a.hora_salida).length,
-            dias_trabajados_semana: asistenciasSemana.length,
-            tiene_asistencia_hoy: asistenciaHoy ? true : false,
-            promedio_mensual: asistenciasMes.length > 0 ? 
-                Math.round((asistenciasMes.filter(a => a.hora_entrada && a.hora_salida).length / asistenciasMes.length) * 100) : 0
+            diasTrabajados: asistenciasMes.length,
+            horasTotales: this.calcularHorasTotales(asistenciasMes),
+            promedioHoras: this.calcularPromedioHoras(asistenciasMes),
+            puntualidad: this.calcularPuntualidad(asistenciasMes)
         };
     }
 
@@ -137,29 +135,69 @@ class Attendance {
         const hoy = new Date().toISOString().split('T')[0];
         const empleados = await database.getEmpleados();
         
-        const estadisticas = {
-            totalEmpleados: empleados.length,
-            presente: 0,
-            ausente: 0,
-            trabajando: 0,
-            jornada_completa: 0
-        };
+        const dashboardData = [];
 
         for (const empleado of empleados) {
             const asistenciaHoy = await this.getByEmployeeAndDate(empleado.id, hoy);
             
-            if (!asistenciaHoy || !asistenciaHoy.hora_entrada) {
-                estadisticas.ausente++;
-            } else if (asistenciaHoy.hora_entrada && !asistenciaHoy.hora_salida) {
-                estadisticas.presente++;
-                estadisticas.trabajando++;
-            } else if (asistenciaHoy.hora_entrada && asistenciaHoy.hora_salida) {
-                estadisticas.presente++;
-                estadisticas.jornada_completa++;
-            }
+            dashboardData.push({
+                id: empleado.id,
+                nombre: empleado.nombre,
+                email: empleado.email,
+                fecha: hoy,
+                hora_entrada: asistenciaHoy?.hora_entrada || null,
+                hora_salida: asistenciaHoy?.hora_salida || null,
+                estado: this.calculateStatus(asistenciaHoy)
+            });
         }
 
-        return estadisticas;
+        return dashboardData;
+    }
+
+    calculateStatus(asistencia) {
+        if (!asistencia || !asistencia.hora_entrada) {
+            return 'sin-marcar';
+        } else if (asistencia.hora_entrada && !asistencia.hora_salida) {
+            return 'trabajando';
+        } else if (asistencia.hora_entrada && asistencia.hora_salida) {
+            return 'completa';
+        }
+        return 'sin-marcar';
+    }
+
+    // Funciones auxiliares para calcular estadísticas
+    calcularHorasTotales(asistencias) {
+        let totalHoras = 0;
+        asistencias.forEach(asistencia => {
+            if (asistencia.hora_entrada && asistencia.hora_salida) {
+                const entrada = new Date(`2000-01-01 ${asistencia.hora_entrada}`);
+                const salida = new Date(`2000-01-01 ${asistencia.hora_salida}`);
+                const diff = (salida - entrada) / (1000 * 60 * 60); // horas
+                totalHoras += diff;
+            }
+        });
+        return Math.round(totalHoras * 10) / 10; // Redondear a 1 decimal
+    }
+
+    calcularPromedioHoras(asistencias) {
+        const diasCompletos = asistencias.filter(a => a.hora_entrada && a.hora_salida);
+        if (diasCompletos.length === 0) return 0;
+        
+        const totalHoras = this.calcularHorasTotales(asistencias);
+        return Math.round((totalHoras / diasCompletos.length) * 10) / 10;
+    }
+
+    calcularPuntualidad(asistencias) {
+        if (asistencias.length === 0) return 100;
+        
+        const puntuales = asistencias.filter(asistencia => {
+            if (!asistencia.hora_entrada) return false;
+            const entrada = asistencia.hora_entrada;
+            // Considerar puntual si llega antes de las 9:15
+            return entrada <= '09:15:00';
+        });
+        
+        return Math.round((puntuales.length / asistencias.length) * 100);
     }
 }
 

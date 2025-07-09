@@ -12,7 +12,6 @@ const { requireAuth, requireAdmin } = require('./src/middleware/auth');
 const authRoutes = require('./src/routes/auth');
 const employeeRoutes = require('./src/routes/employees');
 const attendanceRoutes = require('./src/routes/attendances');
-const healthApp = require('./src/health');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,8 +28,8 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE === 'true',
-        maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 24 * 60 * 60 * 1000, // 24 horas
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000, // 24 horas
         httpOnly: true,
         sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
     }
@@ -39,7 +38,12 @@ app.use(session({
 // Rutas principales de navegación
 app.get('/', (req, res) => {
     if (req.session.userId) {
-        res.sendFile(path.join(__dirname, 'public', 'pages', 'dashboard.html'));
+        // Redirigir según el rol del usuario
+        if (req.session.isAdmin) {
+            res.redirect('/admin');
+        } else {
+            res.redirect('/employee');
+        }
     } else {
         res.redirect('/login');
     }
@@ -47,7 +51,12 @@ app.get('/', (req, res) => {
 
 app.get('/login', (req, res) => {
     if (req.session.userId) {
-        res.redirect('/');
+        // Si el usuario ya está autenticado, redirigir según su rol
+        if (req.session.isAdmin) {
+            res.redirect('/admin');
+        } else {
+            res.redirect('/employee');
+        }
     } else {
         res.sendFile(path.join(__dirname, 'public', 'pages', 'login.html'));
     }
@@ -57,17 +66,23 @@ app.get('/admin', requireAuth, requireAdmin, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'pages', 'admin.html'));
 });
 
+app.get('/employee', requireAuth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'pages', 'employee.html'));
+});
+
 app.get('/dashboard', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'pages', 'dashboard.html'));
+    // Redirigir según el rol
+    if (req.session.isAdmin) {
+        res.redirect('/admin');
+    } else {
+        res.redirect('/employee');
+    }
 });
 
 // Rutas API
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/attendances', attendanceRoutes);
-
-// Health check routes
-app.use('/', healthApp);
 
 // Inicializar la aplicación
 async function initializeApp() {
@@ -78,31 +93,37 @@ async function initializeApp() {
         // Inicializar tablas
         await database.initTables();
         
-        // Iniciar servidor
-        app.listen(PORT, () => {
-            console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-            console.log(`📊 Panel admin: http://localhost:${PORT}/admin`);
-            console.log(`� Base de datos: Supabase PostgreSQL`);
-        });
+        // Solo iniciar servidor si no estamos en Vercel
+        if (!process.env.VERCEL) {
+            app.listen(PORT, () => {
+                console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+                console.log(`📊 Panel admin: http://localhost:${PORT}/admin`);
+                console.log(`🗄️ Base de datos: Supabase PostgreSQL`);
+            });
+        }
         
     } catch (error) {
         console.error('Error inicializando la aplicación:', error);
-        process.exit(1);
+        if (!process.env.VERCEL) {
+            process.exit(1);
+        }
     }
 }
 
-// Manejo de cierre graceful
-process.on('SIGINT', async () => {
-    console.log('\\n🛑 Cerrando servidor...');
-    await database.close();
-    process.exit(0);
-});
+// Manejo de cierre graceful (solo para desarrollo local)
+if (!process.env.VERCEL) {
+    process.on('SIGINT', async () => {
+        console.log('\n🛑 Cerrando servidor...');
+        await database.close();
+        process.exit(0);
+    });
 
-process.on('SIGTERM', async () => {
-    console.log('\\n🛑 Cerrando servidor...');
-    await database.close();
-    process.exit(0);
-});
+    process.on('SIGTERM', async () => {
+        console.log('\n🛑 Cerrando servidor...');
+        await database.close();
+        process.exit(0);
+    });
+}
 
 // Inicializar aplicación
 initializeApp();

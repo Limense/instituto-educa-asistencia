@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
 class DatabaseManager {
     constructor() {
@@ -22,6 +23,7 @@ class DatabaseManager {
         try {
             const { data, error } = await this.supabase.from('empleados').select('count').limit(1);
             if (error) throw error;
+            console.log('✅ Conexión a Supabase verificada');
             return true;
         } catch (error) {
             console.error('Error conectando a Supabase:', error.message);
@@ -48,7 +50,7 @@ class DatabaseManager {
             .eq('activo', true)
             .single();
         
-        if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+        if (error && error.code !== 'PGRST116') throw error;
         return data;
     }
 
@@ -56,6 +58,30 @@ class DatabaseManager {
         const { data, error } = await this.supabase
             .from('empleados')
             .insert([empleado])
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    async actualizarEmpleado(id, empleado) {
+        const { data, error } = await this.supabase
+            .from('empleados')
+            .update(empleado)
+            .eq('id', id)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    async eliminarEmpleado(id) {
+        const { data, error } = await this.supabase
+            .from('empleados')
+            .update({ activo: false })
+            .eq('id', id)
             .select()
             .single();
         
@@ -91,14 +117,19 @@ class DatabaseManager {
         const { data, error } = await queryBuilder.order('fecha', { ascending: false });
         
         if (error) throw error;
-        return data;
+        
+        return data.map(asistencia => ({
+            ...asistencia,
+            nombre: asistencia.empleados?.nombre || 'N/A',
+            email: asistencia.empleados?.email || 'N/A',
+            departamento: asistencia.empleados?.departamento || 'N/A'
+        }));
     }
 
     async marcarAsistencia(empleadoId, tipo) {
         const hoy = new Date().toISOString().split('T')[0];
         const ahora = new Date().toTimeString().split(' ')[0];
         
-        // Buscar asistencia del día
         const { data: asistenciaExistente } = await this.supabase
             .from('asistencias')
             .select('*')
@@ -150,19 +181,13 @@ class DatabaseManager {
     }
 
     async close() {
-        // Supabase no necesita cierre explícito
         return Promise.resolve();
     }
 
     getDatabase() {
         return this.supabase;
     }
-
-    getDatabaseType() {
-        return 'supabase';
-    }
 }
 
-// Instancia singleton
 const databaseManager = new DatabaseManager();
 module.exports = databaseManager;

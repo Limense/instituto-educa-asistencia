@@ -56,7 +56,12 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             loginBtn.style.background = '#10b981';
             loginBtn.textContent = '✅ ¡Bienvenido!';
             setTimeout(() => {
-                window.location.href = '/';
+                // Redirigir según el rol del usuario
+                if (data.user && data.user.es_admin) {
+                    window.location.href = '/admin';
+                } else {
+                    window.location.href = '/employee';
+                }
             }, 1000);
         } else {
             throw new Error(data.error || 'Error al iniciar sesión');

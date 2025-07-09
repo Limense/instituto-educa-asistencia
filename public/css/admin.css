@@ -248,13 +248,17 @@ body {
 }
 
 .badge-admin {
-    background: #ddd6fe;
-    color: #5b21b6;
+    background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+    color: #7c3aed;
+    border: 1px solid #c4b5fd;
+    box-shadow: 0 2px 4px rgba(124, 58, 237, 0.1);
 }
 
 .badge-empleado {
-    background: #e0f2fe;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
     color: #0369a1;
+    border: 1px solid #7dd3fc;
+    box-shadow: 0 2px 4px rgba(3, 105, 161, 0.1);
 }
 
 .badge-completo {

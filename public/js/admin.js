@@ -253,7 +253,7 @@ function renderEmpleados() {
     const tbody = document.getElementById('empleadosTable');
     
     if (empleados.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5">No hay empleados registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5">No hay usuarios registrados</td></tr>';
         return;
     }
     
@@ -263,8 +263,8 @@ function renderEmpleados() {
             <td>${emp.nombre}</td>
             <td>${emp.email}</td>
             <td>
-                <span class="badge badge-${emp.es_admin ? 'admin' : 'empleado'}">
-                    ${emp.es_admin ? 'Admin' : 'Empleado'}
+                <span class="badge badge-${emp.es_admin ? 'admin' : 'empleado'}" style="padding: 4px 12px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">
+                    ${emp.es_admin ? '👑 Administrador' : '👤 Empleado'}
                 </span>
             </td>
             <td>
@@ -286,17 +286,26 @@ function showEmpleadoModal(empleado = null) {
     const title = document.getElementById('modalTitle');
     
     if (empleado) {
-        title.textContent = 'Editar Empleado';
+        title.textContent = 'Editar Usuario';
         document.getElementById('empleadoId').value = empleado.id;
         document.getElementById('empleadoNombre').value = empleado.nombre;
         document.getElementById('empleadoEmail').value = empleado.email;
         document.getElementById('empleadoPassword').required = false;
-        document.getElementById('empleadoAdmin').checked = empleado.es_admin;
+        
+        // Configurar radio buttons según el tipo de usuario
+        const userTypeRadios = document.querySelectorAll('input[name="userType"]');
+        userTypeRadios.forEach(radio => {
+            radio.checked = (radio.value === 'admin' && empleado.es_admin) || 
+                          (radio.value === 'empleado' && !empleado.es_admin);
+        });
     } else {
-        title.textContent = 'Nuevo Empleado';
+        title.textContent = 'Crear Nuevo Usuario';
         form.reset();
         document.getElementById('empleadoId').value = '';
         document.getElementById('empleadoPassword').required = true;
+        
+        // Por defecto seleccionar "empleado"
+        document.querySelector('input[name="userType"][value="empleado"]').checked = true;
     }
     
     modal.style.display = 'block';
@@ -313,13 +322,55 @@ async function saveEmpleado() {
     const formData = new FormData(form);
     const empleadoId = formData.get('empleadoId');
     
+    // Obtener el tipo de usuario seleccionado
+    const userType = formData.get('userType');
+    
+    // Si es una edición, verificar si hay cambio de rol
+    if (empleadoId) {
+        const empleadoActual = empleados.find(emp => emp.id == empleadoId);
+        if (empleadoActual) {
+            const esAdminActual = empleadoActual.es_admin;
+            const esAdminNuevo = userType === 'admin';
+            
+            // Si hay cambio de rol, mostrar advertencia
+            if (esAdminActual !== esAdminNuevo) {
+                const tipoActual = esAdminActual ? 'Administrador' : 'Empleado';
+                const tipoNuevo = esAdminNuevo ? 'Administrador' : 'Empleado';
+                
+                let mensaje = `⚠️ CAMBIO DE ROL DETECTADO\n\n`;
+                mensaje += `Usuario: ${empleadoActual.nombre}\n`;
+                mensaje += `Rol actual: ${tipoActual}\n`;
+                mensaje += `Nuevo rol: ${tipoNuevo}\n\n`;
+                
+                if (esAdminNuevo) {
+                    mensaje += `🔓 OTORGAR PERMISOS DE ADMINISTRADOR:\n`;
+                    mensaje += `• Acceso completo al sistema\n`;
+                    mensaje += `• Gestión de usuarios y asistencias\n`;
+                    mensaje += `• NO podrá marcar asistencia personal\n`;
+                    mensaje += `• Sus asistencias previas se mantienen\n\n`;
+                } else {
+                    mensaje += `🔒 REVOCAR PERMISOS DE ADMINISTRADOR:\n`;
+                    mensaje += `• Perderá acceso al panel de administración\n`;
+                    mensaje += `• Solo podrá marcar asistencia personal\n`;
+                    mensaje += `• Será redirigido al portal de empleado\n\n`;
+                }
+                
+                mensaje += `¿Estás seguro de continuar?`;
+                
+                if (!confirm(mensaje)) {
+                    return;
+                }
+            }
+        }
+    }
+    
     const data = {
         nombre: formData.get('nombre'),
         email: formData.get('email'),
         password: formData.get('password'),
-        es_admin: formData.get('es_admin') === 'on'
+        es_admin: userType === 'admin'
     };
-    
+
     try {
         let response;
         if (empleadoId) {
@@ -342,7 +393,9 @@ async function saveEmpleado() {
         const result = await response.json();
         
         if (response.ok) {
-            showMessage(empleadoId ? 'Empleado actualizado' : 'Empleado creado', 'success');
+            const userType = data.es_admin ? 'administrador' : 'empleado';
+            const action = empleadoId ? 'actualizado' : 'creado';
+            showMessage(`Usuario ${userType} ${action} exitosamente`, 'success');
             closeModal('empleadoModal');
             loadEmpleados();
         } else {
@@ -363,7 +416,10 @@ function editEmpleado(id) {
 
 // Eliminar empleado
 async function deleteEmpleado(id) {
-    if (!confirm('¿Estás seguro de eliminar este empleado?')) return;
+    const empleado = empleados.find(emp => emp.id === id);
+    const userType = empleado?.es_admin ? 'administrador' : 'empleado';
+    
+    if (!confirm(`¿Estás seguro de eliminar este ${userType}?\n\nNombre: ${empleado?.nombre || 'Usuario'}\nEmail: ${empleado?.email || 'N/A'}\n\nEsta acción no se puede deshacer.`)) return;
     
     try {
         const response = await fetch(`/api/employees/${id}`, {
@@ -371,7 +427,7 @@ async function deleteEmpleado(id) {
         });
         
         if (response.ok) {
-            showMessage('Empleado eliminado', 'success');
+            showMessage(`Usuario ${userType} eliminado exitosamente`, 'success');
             loadEmpleados();
         } else {
             const result = await response.json();

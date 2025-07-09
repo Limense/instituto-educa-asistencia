@@ -6,6 +6,11 @@ class AttendanceController {
     }
 
     async markEntry(req, res) {
+        // Verificar que el usuario no sea administrador
+        if (req.session.isAdmin) {
+            return res.status(403).json({ error: 'Los administradores no pueden marcar asistencia' });
+        }
+
         const empleadoId = req.session.userId;
         const fecha = new Date().toISOString().split('T')[0];
         const horaEntrada = new Date().toLocaleTimeString('es-ES', { hour12: false });
@@ -26,6 +31,11 @@ class AttendanceController {
     }
 
     async markExit(req, res) {
+        // Verificar que el usuario no sea administrador
+        if (req.session.isAdmin) {
+            return res.status(403).json({ error: 'Los administradores no pueden marcar asistencia' });
+        }
+
         const empleadoId = req.session.userId;
         const fecha = new Date().toISOString().split('T')[0];
         const horaSalida = new Date().toLocaleTimeString('es-ES', { hour12: false });
@@ -50,6 +60,11 @@ class AttendanceController {
     }
 
     async getTodayStatus(req, res) {
+        // Si es administrador, no devolver datos de asistencia personal
+        if (req.session.isAdmin) {
+            return res.json({});
+        }
+
         const empleadoId = req.session.userId;
         const fecha = new Date().toISOString().split('T')[0];
 
@@ -63,6 +78,11 @@ class AttendanceController {
     }
 
     async getEmployeeAttendances(req, res) {
+        // Si es administrador, no devolver asistencias personales
+        if (req.session.isAdmin) {
+            return res.json([]);
+        }
+
         const empleadoId = req.session.userId;
 
         try {
@@ -75,6 +95,16 @@ class AttendanceController {
     }
 
     async getMonthlyStats(req, res) {
+        // Si es administrador, no devolver estadísticas personales
+        if (req.session.isAdmin) {
+            return res.json({
+                diasTrabajados: 0,
+                horasTotales: 0,
+                promedioHoras: 0,
+                puntualidad: 0
+            });
+        }
+
         const empleadoId = req.session.userId;
         const currentDate = new Date();
         const year = currentDate.getFullYear();

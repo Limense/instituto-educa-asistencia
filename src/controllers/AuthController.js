@@ -26,7 +26,7 @@ class AuthController {
 
             req.session.userId = user.id;
             req.session.userName = user.nombre;
-            req.session.isAdmin = user.es_admin === 1;
+            req.session.isAdmin = user.es_admin === true;
 
             res.json({ 
                 success: true, 
@@ -34,7 +34,7 @@ class AuthController {
                     id: user.id, 
                     nombre: user.nombre, 
                     email: user.email, 
-                    es_admin: user.es_admin === 1 
+                    es_admin: user.es_admin === true 
                 } 
             });
         } catch (error) {

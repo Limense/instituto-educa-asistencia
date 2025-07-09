@@ -27,7 +27,7 @@ class EmployeeController {
             res.status(201).json(employee);
         } catch (error) {
             console.error('Error al crear empleado:', error);
-            if (error.code === '23505' || error.code === 'SQLITE_CONSTRAINT') {
+            if (error.code === '23505') {
                 res.status(400).json({ error: 'El email ya está registrado' });
             } else {
                 res.status(500).json({ error: 'Error del servidor' });
@@ -37,21 +37,21 @@ class EmployeeController {
 
     async update(req, res) {
         const { id } = req.params;
-        const { nombre, email, password } = req.body;
+        const { nombre, email, password, es_admin } = req.body;
         
         if (!nombre || !email) {
             return res.status(400).json({ error: 'Nombre y email son requeridos' });
         }
 
         try {
-            const result = await this.employeeModel.update(id, nombre, email, password);
+            const result = await this.employeeModel.update(id, nombre, email, password, null, es_admin);
             if (result.changes === 0) {
                 return res.status(404).json({ error: 'Empleado no encontrado' });
             }
             res.json({ success: true });
         } catch (error) {
             console.error('Error al actualizar empleado:', error);
-            if (error.code === '23505' || error.code === 'SQLITE_CONSTRAINT') {
+            if (error.code === '23505') {
                 res.status(400).json({ error: 'El email ya está registrado' });
             } else {
                 res.status(500).json({ error: 'Error del servidor' });
@@ -65,11 +65,11 @@ class EmployeeController {
         try {
             const result = await this.employeeModel.delete(id);
             if (result.changes === 0) {
-                return res.status(404).json({ error: 'Empleado no encontrado' });
+                return res.status(404).json({ error: 'Usuario no encontrado' });
             }
-            res.json({ success: true });
+            res.json({ success: true, message: 'Usuario eliminado exitosamente' });
         } catch (error) {
-            console.error('Error al eliminar empleado:', error);
+            console.error('Error al eliminar usuario:', error);
             res.status(500).json({ error: 'Error del servidor' });
         }
     }
